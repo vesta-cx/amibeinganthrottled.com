@@ -50,5 +50,23 @@
 		"vitest": "^4.1.0",
 		"vitest-browser-svelte": "^2.0.2",
 		"wrangler": "^4.63.0"
+	},
+	"dependencies": {
+		"@fontsource-variable/dm-sans": "^5.2.8",
+		"@fontsource-variable/fraunces": "^5.2.9",
+		"@fontsource-variable/lexend": "^5.2.11",
+		"@fontsource-variable/nunito": "^5.2.7",
+		"@fontsource-variable/outfit": "^5.2.8",
+		"@fontsource-variable/playfair-display": "^5.2.8",
+		"@fontsource-variable/quicksand": "^5.2.10",
+		"@fontsource-variable/sora": "^5.2.8",
+		"@fontsource-variable/space-grotesk": "^5.2.10",
+		"@fontsource/azeret-mono": "^5.2.11",
+		"@fontsource/geist-mono": "^5.2.7",
+		"@fontsource/inter": "^5.2.8",
+		"@fontsource/jetbrains-mono": "^5.2.8",
+		"@fontsource/press-start-2p": "^5.2.7",
+		"@fontsource/space-mono": "^5.2.9",
+		"@fontsource/vt323": "^5.2.7"
 	}
 }
