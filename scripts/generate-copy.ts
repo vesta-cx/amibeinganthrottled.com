@@ -1,8 +1,9 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { Effect, Schedule, Schema } from 'effect'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
-import { CopyFileSchema, type CopyFile, type LocaleCopy } from '../src/lib/copy/schema.ts'
+import { CopyFileSchema, LocaleSchema, type CopyFile, type LocaleCopy } from '../src/lib/copy/schema.ts'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -126,28 +127,13 @@ ${JSON.stringify(english, null, 2)}`
 
 // ── Validation ─────────────────────────────────────────────────────────────
 
-const LocaleSchemaEffect = Schema.Struct({
-	throttled: Schema.Array(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(80))).check(
-		Schema.isMinLength(30),
-		Schema.isMaxLength(30),
-	),
-	clear: Schema.Array(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(80))).check(
-		Schema.isMinLength(30),
-		Schema.isMaxLength(30),
-	),
-	weekend: Schema.Array(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(80))).check(
-		Schema.isMinLength(30),
-		Schema.isMaxLength(30),
-	),
-})
-
 const parseAndValidateLocale = (label: string, response: string): Effect.Effect<LocaleCopy, Error> =>
 	Effect.try({
 		try: () => JSON.parse(response) as unknown,
 		catch: () => new Error(`[${label}] Response was not valid JSON`),
 	}).pipe(
 		Effect.flatMap((parsed) =>
-			Schema.decodeUnknownEffect(LocaleSchemaEffect)(parsed).pipe(
+			Schema.decodeUnknownEffect(LocaleSchema)(parsed).pipe(
 				Effect.mapError((e) => new Error(`[${label}] Schema validation failed: ${e.message}`)),
 			),
 		),
@@ -179,9 +165,10 @@ const main = async () => {
 	let dedup: string[] = []
 	try {
 		const index = JSON.parse(readFileSync(indexPath, 'utf8')) as { current?: string }
-		if (index.current) {
-			const prevPath = `${copyDir}/${index.current}.json`
-			if (existsSync(prevPath)) {
+		if (index.current && /^\d{4}-\d{2}-\d{2}$/.test(index.current)) {
+			const absCopyDir = resolve(copyDir)
+			const prevPath = resolve(absCopyDir, `${index.current}.json`)
+			if (prevPath.startsWith(absCopyDir + '/') && existsSync(prevPath)) {
 				const prev = JSON.parse(readFileSync(prevPath, 'utf8')) as {
 					en?: { throttled?: string[]; clear?: string[]; weekend?: string[] }
 				}
@@ -241,7 +228,9 @@ const main = async () => {
 	}
 
 	// Write — only after all validation passes
-	writeFileSync(outPath, JSON.stringify(result, null, 2) + '\n', 'utf8')
+	const tmpPath = `${outPath}.tmp`
+	writeFileSync(tmpPath, JSON.stringify(result, null, 2) + '\n', 'utf8')
+	renameSync(tmpPath, outPath) // atomic on POSIX
 	writeFileSync(indexPath, JSON.stringify({ current: date }, null, 2) + '\n', 'utf8')
 
 	console.log(`\n✓ ${outPath}`)
