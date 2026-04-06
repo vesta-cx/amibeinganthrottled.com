@@ -32,7 +32,7 @@ See the *Module: `src/routes/api/status/+server.js`* section of PRD #1 for the f
   "status": "throttled | clear | weekend",
   "windowStart": "05:00 PT",
   "windowEnd": "11:00 PT",
-  "minutesIntoWindow": 142,
+  "minutesSinceLastTransition": 142,
   "minutesRemaining": 218,
   "nextTransitionAt": "2026-04-07T18:00:00.000Z",
   "prompt": "..."
@@ -44,7 +44,7 @@ See the *Module: `src/routes/api/status/+server.js`* section of PRD #1 for the f
 - [ ] `GET /api/status` returns `200 application/json`
 - [ ] All 7 response fields present and correctly typed
 - [ ] `status` matches current PT time (throttled / clear / weekend)
-- [ ] `minutesIntoWindow` is `0` when `clear` or `weekend`
+- [ ] `minutesSinceLastTransition` is `0` at any state boundary
 - [ ] `nextTransitionAt` is a valid ISO 8601 UTC timestamp
 - [ ] `prompt` is a non-empty English string; time values use `formatCountdown()` output
 - [ ] `Access-Control-Allow-Origin: *` header present

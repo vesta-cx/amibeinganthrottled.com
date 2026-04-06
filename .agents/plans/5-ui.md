@@ -28,9 +28,10 @@ The complete single-page UI, Paraglide locale strings, and the bootstrap seed co
 
 - **Styling**: Tailwind v4 is already in the scaffold. The PRD says scoped `<style>` only — decide at implementation time which to use. Either is acceptable; don't mix both
 - `+page.js` (or `+page.ts`) must export `export const prerender = true`
-- Copy index selected once on `onMount` (`Math.floor(Math.random() * 30)`), stored in a `$state` variable — never re-randomised during the session
+- **Three copy indices pre-selected at mount** — one per state (`throttledIdx`, `clearIdx`, `weekendIdx`), each via `Math.floor(Math.random() * 30)`. All three are stable for the session. The active copy string is always `copy[locale][state][stateIdx[state]]`, so a state transition immediately displays the correct new-state copy with no re-randomising.
+- `state` is the single reactive `$state` root. Copy string, status color, status indicator style, countdown label ("starts" vs "ends"), and heading text are all derived from it — a state change in the interval tick re-renders all of them in the same frame, no reload required.
 - Locale resolved from Paraglide at mount; copy file read from the matching locale key
-- `setInterval` (1s) re-evaluates `throttle()` and updates all time-derived state; cleared in the `onDestroy` / return from `onMount`
+- `setInterval` (1s) re-evaluates `throttle()` and writes to all `$state` runes (`state`, `nextTransitionAt`, `msUntilTransition`, `msSinceLastTransition`); cleared in the `onDestroy` / return from `onMount`
 - Status colors: red (`throttled`), green (`clear`), purple/blue (`weekend`) — exact values up to the chosen design
 
 ## Acceptance criteria
@@ -38,6 +39,7 @@ The complete single-page UI, Paraglide locale strings, and the bootstrap seed co
 - [ ] Three design variants generated via `/web-frontend-design` and presented to user before any implementation
 - [ ] Chosen design implemented; `pnpm build` exits 0
 - [ ] Status correctly reflects `throttle()` output; color changes with state
+- [ ] With the page open at a state boundary (e.g. 11:00:00 PT), the verdict copy, status color, status indicator, and countdown label ("starts" vs "ends") all update within 1 second of the transition — no reload required
 - [ ] Countdown ticks every second, cleared on unmount
 - [ ] Countdown string matches suppression/pluralization spec (from `formatCountdown()`)
 - [ ] PT clock and local clock both visible and live
@@ -62,3 +64,4 @@ The complete single-page UI, Paraglide locale strings, and the bootstrap seed co
 - User story 31 (locale auto-detection)
 - User story 32 (grammatically correct countdown per locale)
 - User story 33 (manual locale switcher)
+- User story 41 (live state transition without reload)
