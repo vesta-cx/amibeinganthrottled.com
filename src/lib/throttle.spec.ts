@@ -168,6 +168,16 @@ describe('throttle — msSinceLastTransition', () => {
 		const d = pt('2026-04-06T11:00:00')
 		expect(throttle(d).msSinceLastTransition).toBe(0)
 	})
+
+	it('Sunday noon: msSinceLastTransition counts from Saturday midnight, not Sunday midnight', () => {
+		// The weekend state started at Saturday midnight. By Sunday noon (36h later)
+		// msSinceLastTransition should be ~36h, not ~12h.
+		const d = pt('2026-04-05T12:00:00') // Sunday noon PT
+		const { msSinceLastTransition } = throttle(d)
+		const expectedMs = 36 * 3600_000 // Sat midnight → Sun noon = 36h
+		expect(msSinceLastTransition).toBeGreaterThanOrEqual(expectedMs - 1000)
+		expect(msSinceLastTransition).toBeLessThanOrEqual(expectedMs + 1000)
+	})
 })
 
 // ─── throttle — DST ───────────────────────────────────────────────────────────

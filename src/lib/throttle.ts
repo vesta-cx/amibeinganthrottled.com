@@ -54,7 +54,8 @@ const ptDateString = (date: Date): string =>
 // date of `anchor` + `dayOffset` calendar days. Tries both PT offsets
 // (-07:00 and -08:00) and picks the one that round-trips correctly —
 // handles DST cleanly without manual offset arithmetic.
-const ptAt = (anchor: Date, hour: number, minute = 0, dayOffset = 0): Date => {
+// Exported so format.ts can use the same DST-safe conversion.
+export const ptAt = (anchor: Date, hour: number, minute = 0, dayOffset = 0): Date => {
 	const base = ptDateString(anchor)
 	const [y, m, d] = base.split('-').map(Number)
 
@@ -96,7 +97,9 @@ export const throttle = (date: Date = new Date()): ThrottleResult => {
 		state = 'weekend'
 		// Saturday → midnight Sunday; Sunday → midnight Monday
 		nextTransitionAt = ptMidnight(date, 1)
-		lastTransitionAt = ptMidnight(date, 0)
+		// The weekend state began at Saturday midnight regardless of whether
+		// today is Saturday or Sunday — use dayOffset -1 on Sunday.
+		lastTransitionAt = ptMidnight(date, weekday === 0 ? -1 : 0)
 	} else if (hour < WINDOW_START) {
 		// Clear: before today's throttle window
 		state = 'clear'
@@ -106,9 +109,8 @@ export const throttle = (date: Date = new Date()): ThrottleResult => {
 		// Clear: after today's throttle window
 		state = 'clear'
 		lastTransitionAt = ptAt(date, WINDOW_END)
-		// Mon–Thu → midnight tonight; Fri → midnight Saturday
-		const daysToNextBoundary = weekday === 5 ? 1 : 1
-		nextTransitionAt = ptMidnight(date, daysToNextBoundary)
+		// Always midnight tomorrow: Mon–Thu → next clear day, Fri → Saturday (start of weekend)
+		nextTransitionAt = ptMidnight(date, 1)
 	}
 
 	const now = date.getTime()

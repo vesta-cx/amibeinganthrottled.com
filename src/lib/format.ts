@@ -1,3 +1,5 @@
+import { ptAt } from './throttle'
+
 export type CountdownUnit = 'days' | 'hours' | 'minutes' | 'seconds'
 
 export type Countdown = {
@@ -42,31 +44,31 @@ export const formatCountdown = (ms: number): Countdown => {
 
 // Returns peak hours expressed in the given timezone in 24-hour format,
 // e.g. "14:00–20:00 CET". Defaults to the runtime's local timezone.
-// Accepts an explicit `tz` override so tests can assert deterministic output.
-export const formatPeakHoursLocal = (tz?: string): string => {
+// Accepts an explicit `tz` override and an optional `ref` date so tests
+// can assert deterministic output across both PST and PDT seasons.
+export const formatPeakHoursLocal = (tz?: string, ref?: Date): string => {
 	const timeZone = tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+	const refDate = ref ?? new Date()
 
+	// Use ptAt to convert PT window boundaries to UTC for the current season —
+	// handles PST (UTC-8) and PDT (UTC-7) correctly without a hardcoded offset.
 	const fmt = (hour: number) =>
 		new Intl.DateTimeFormat('en-GB', {
 			timeZone,
 			hour: '2-digit',
 			minute: '2-digit',
 			hour12: false
-		}).format(
-			// Use a known weekday in the current DST period so the abbreviation
-			// is accurate. Anchor on a recent Monday 05:00 / 11:00 PT.
-			// We pick a fixed reference date in summer to get PDT (UTC-7).
-			// For display purposes the hour is what matters; abbreviation is a bonus.
-			new Date(`2026-06-01T${String(hour + 7).padStart(2, '0')}:00:00Z`)
-		)
+		}).format(ptAt(refDate, hour))
 
-	// Extract timezone abbreviation from a locale-aware format
-	const abbr = new Intl.DateTimeFormat('en-US', {
-		timeZone,
-		timeZoneName: 'short'
-	})
-		.formatToParts(new Date('2026-06-01T12:00:00Z'))
-		.find((p) => p.type === 'timeZoneName')?.value ?? ''
+	// Extract timezone abbreviation using the same reference date so the
+	// abbreviation reflects the correct DST state for the current season.
+	const abbr =
+		new Intl.DateTimeFormat('en-US', {
+			timeZone,
+			timeZoneName: 'short'
+		})
+			.formatToParts(ptAt(refDate, 8)) // mid-window anchor, avoids midnight edge cases
+			.find((p) => p.type === 'timeZoneName')?.value ?? ''
 
 	return `${fmt(5)}–${fmt(11)} ${abbr}`.trim()
 }

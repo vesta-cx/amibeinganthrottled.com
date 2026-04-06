@@ -114,27 +114,41 @@ describe('formatCountdown — units.length', () => {
 
 // ─── formatPeakHoursLocal ─────────────────────────────────────────────────────
 
+// Fixed reference dates for season-specific tests
+const SUMMER = new Date('2026-06-15T12:00:00Z') // PDT season (UTC-7)
+const WINTER = new Date('2026-01-15T12:00:00Z') // PST season (UTC-8)
+
 describe('formatPeakHoursLocal', () => {
 	// Assert on the hour range — timezone abbreviations vary by Node.js ICU build
 	// (some give "CEST", others "GMT+2"). The hours are what matter.
 
-	it('Amsterdam in summer: 14:00–20:00', () => {
-		expect(formatPeakHoursLocal('Europe/Amsterdam')).toMatch(/^14:00–20:00/)
+	it('Amsterdam in summer (PDT): 14:00–20:00', () => {
+		expect(formatPeakHoursLocal('Europe/Amsterdam', SUMMER)).toMatch(/^14:00–20:00/)
 	})
 
-	it('New York in summer: 08:00–14:00', () => {
-		expect(formatPeakHoursLocal('America/New_York')).toMatch(/^08:00–14:00/)
+	it('New York in summer (PDT): 08:00–14:00', () => {
+		expect(formatPeakHoursLocal('America/New_York', SUMMER)).toMatch(/^08:00–14:00/)
 	})
 
-	it('London in summer: 13:00–19:00', () => {
-		expect(formatPeakHoursLocal('Europe/London')).toMatch(/^13:00–19:00/)
+	it('London in summer (PDT): 13:00–19:00', () => {
+		expect(formatPeakHoursLocal('Europe/London', SUMMER)).toMatch(/^13:00–19:00/)
 	})
 
-	it('UTC: 12:00–18:00', () => {
-		expect(formatPeakHoursLocal('UTC')).toMatch(/^12:00–18:00/)
+	it('UTC in summer (PDT): 12:00–18:00', () => {
+		expect(formatPeakHoursLocal('UTC', SUMMER)).toMatch(/^12:00–18:00/)
+	})
+
+	it('UTC in winter (PST): 13:00–19:00', () => {
+		// PST is UTC-8, so peak window 05:00–11:00 PT = 13:00–19:00 UTC
+		expect(formatPeakHoursLocal('UTC', WINTER)).toMatch(/^13:00–19:00/)
+	})
+
+	it('New York in winter (PST): 08:00–14:00', () => {
+		// Both PT and ET shift together, so the local hour stays the same
+		expect(formatPeakHoursLocal('America/New_York', WINTER)).toMatch(/^08:00–14:00/)
 	})
 
 	it('returns a non-empty string for any valid IANA timezone', () => {
-		expect(formatPeakHoursLocal('Asia/Tokyo')).toBeTruthy()
+		expect(formatPeakHoursLocal('Asia/Tokyo', SUMMER)).toBeTruthy()
 	})
 })
