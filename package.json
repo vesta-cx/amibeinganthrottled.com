@@ -14,7 +14,8 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"gen": "wrangler types"
+		"gen": "wrangler types",
+		"generate-copy": "tsx scripts/generate-copy.ts"
 	},
 	"devDependencies": {
 		"@anthropic-ai/sdk": "^0.82.0",
