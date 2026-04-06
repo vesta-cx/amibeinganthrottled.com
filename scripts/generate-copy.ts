@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync, mkdirSync } from 'node:fs'
+import { isAbsolute, relative, resolve } from 'node:path'
 import { Effect, Schedule, Schema } from 'effect'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
@@ -168,7 +168,8 @@ const main = async () => {
 		if (index.current && /^\d{4}-\d{2}-\d{2}$/.test(index.current)) {
 			const absCopyDir = resolve(copyDir)
 			const prevPath = resolve(absCopyDir, `${index.current}.json`)
-			if (prevPath.startsWith(absCopyDir + '/') && existsSync(prevPath)) {
+				const rel = relative(absCopyDir, prevPath)
+			if (!isAbsolute(rel) && !rel.startsWith('..') && existsSync(prevPath)) {
 				const prev = JSON.parse(readFileSync(prevPath, 'utf8')) as {
 					en?: { throttled?: string[]; clear?: string[]; weekend?: string[] }
 				}
@@ -229,12 +230,19 @@ const main = async () => {
 
 	// Write — only after all validation passes
 	const tmpPath = `${outPath}.tmp`
-	writeFileSync(tmpPath, JSON.stringify(result, null, 2) + '\n', 'utf8')
-	renameSync(tmpPath, outPath) // atomic on POSIX
-
 	const indexTmpPath = `${indexPath}.tmp`
+	writeFileSync(tmpPath, JSON.stringify(result, null, 2) + '\n', 'utf8')
 	writeFileSync(indexTmpPath, JSON.stringify({ current: date }, null, 2) + '\n', 'utf8')
-	renameSync(indexTmpPath, indexPath) // atomic on POSIX
+	try {
+		renameSync(tmpPath, outPath) // atomic on POSIX
+		renameSync(indexTmpPath, indexPath) // atomic on POSIX
+	} catch (e) {
+		// Clean up tmp files; rethrow so the caller exits non-zero
+		for (const p of [tmpPath, indexTmpPath]) {
+			try { if (existsSync(p)) unlinkSync(p) } catch {}
+		}
+		throw e
+	}
 
 	console.log(`\n✓ ${outPath}`)
 	console.log(`✓ ${indexPath} → ${date}`)
