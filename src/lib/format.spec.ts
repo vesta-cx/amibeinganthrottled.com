@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatCountdown, formatPeakHoursLocal } from './format'
+import { formatCountdown, formatPeakHoursLocal, formatCountdownEnglish } from './format'
 
 const sec = (s: number) => s * 1000
 const min = (m: number) => m * 60_000
@@ -101,6 +101,107 @@ describe('formatCountdown — units.length', () => {
 
 	it('1 unit → length 1 (no conjunction)', () => {
 		expect(formatCountdown(sec(30)).units).toHaveLength(1)
+	})
+})
+
+// ─── formatCountdownEnglish — PRD spec examples ──────────────────────────────
+
+describe('formatCountdownEnglish — PRD spec examples', () => {
+	it('1d 3h 22m 5s → "1 day, 3 hours, 22 minutes, and 5 seconds" (Oxford comma)', () => {
+		const result = formatCountdownEnglish(day(1) + hr(3) + min(22) + sec(5))
+		expect(result).toBe('1 day, 3 hours, 22 minutes, and 5 seconds')
+	})
+
+	it('0d 3h 22m 5s → "3 hours, 22 minutes, and 5 seconds" (Oxford comma)', () => {
+		const result = formatCountdownEnglish(hr(3) + min(22) + sec(5))
+		expect(result).toBe('3 hours, 22 minutes, and 5 seconds')
+	})
+
+	it('0d 0h 22m 5s → "22 minutes and 5 seconds" (plain "and")', () => {
+		const result = formatCountdownEnglish(min(22) + sec(5))
+		expect(result).toBe('22 minutes and 5 seconds')
+	})
+
+	it('0d 0h 0m 5s → "5 seconds" (single unit)', () => {
+		const result = formatCountdownEnglish(sec(5))
+		expect(result).toBe('5 seconds')
+	})
+
+	it('0d 3h 0m 5s → "3 hours and 5 seconds" (zero minutes suppressed)', () => {
+		const result = formatCountdownEnglish(hr(3) + sec(5))
+		expect(result).toBe('3 hours and 5 seconds')
+	})
+
+	it('0d 0h 1m 1s → "1 minute and 1 second" (singular forms)', () => {
+		const result = formatCountdownEnglish(min(1) + sec(1))
+		expect(result).toBe('1 minute and 1 second')
+	})
+
+	it('1d 0h 0m 5s → "1 day and 5 seconds" (zero hours and minutes suppressed)', () => {
+		const result = formatCountdownEnglish(day(1) + sec(5))
+		expect(result).toBe('1 day and 5 seconds')
+	})
+})
+
+// ─── formatCountdownEnglish — edge cases ──────────────────────────────────────
+
+describe('formatCountdownEnglish — edge cases', () => {
+	it('0ms → "0 seconds"', () => {
+		const result = formatCountdownEnglish(0)
+		expect(result).toBe('0 seconds')
+	})
+
+	it('negative ms treated as 0', () => {
+		const result = formatCountdownEnglish(-5000)
+		expect(result).toBe('0 seconds')
+	})
+
+	it('exactly 1 second → "1 second" (singular)', () => {
+		expect(formatCountdownEnglish(sec(1))).toBe('1 second')
+	})
+
+	it('exactly 1 minute → "1 minute" (zero seconds suppressed)', () => {
+		expect(formatCountdownEnglish(min(1))).toBe('1 minute')
+	})
+
+	it('exactly 1 hour → "1 hour" (zero minutes and seconds suppressed)', () => {
+		expect(formatCountdownEnglish(hr(1))).toBe('1 hour')
+	})
+
+	it('exactly 1 day → "1 day" (zero hours, minutes, and seconds suppressed)', () => {
+		expect(formatCountdownEnglish(day(1))).toBe('1 day')
+	})
+
+	it('multiple days → "2 days" (plural)', () => {
+		expect(formatCountdownEnglish(day(2))).toBe('2 days')
+	})
+
+	it('multiple hours → "2 hours" (plural)', () => {
+		expect(formatCountdownEnglish(hr(2))).toBe('2 hours')
+	})
+})
+
+// ─── formatCountdownEnglish — Oxford comma behavior ───────────────────────────
+
+describe('formatCountdownEnglish — Oxford comma behavior', () => {
+	it('4 units → Oxford comma', () => {
+		const result = formatCountdownEnglish(day(1) + hr(1) + min(1) + sec(1))
+		expect(result).toBe('1 day, 1 hour, 1 minute, and 1 second')
+	})
+
+	it('3 units → Oxford comma', () => {
+		const result = formatCountdownEnglish(hr(1) + min(1) + sec(1))
+		expect(result).toBe('1 hour, 1 minute, and 1 second')
+	})
+
+	it('2 units → plain "and"', () => {
+		const result = formatCountdownEnglish(hr(1) + sec(1))
+		expect(result).toBe('1 hour and 1 second')
+	})
+
+	it('1 unit → no conjunction', () => {
+		const result = formatCountdownEnglish(sec(30))
+		expect(result).toBe('30 seconds')
 	})
 })
 
