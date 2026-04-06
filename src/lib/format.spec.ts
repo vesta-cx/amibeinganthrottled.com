@@ -68,27 +68,19 @@ describe('formatCountdown — edge cases', () => {
 	})
 
 	it('exactly 1 second', () => {
-		const r = formatCountdown(sec(1))
-		expect(r).toMatchObject({ seconds: 1 })
-		expect(r.units).toEqual(['seconds'])
+		expect(formatCountdown(sec(1))).toEqual({ days: 0, hours: 0, minutes: 0, seconds: 1, units: ['seconds'] })
 	})
 
 	it('exactly 1 minute — zero seconds suppressed', () => {
-		const r = formatCountdown(min(1))
-		expect(r).toMatchObject({ minutes: 1, seconds: 0 })
-		expect(r.units).toEqual(['minutes'])
+		expect(formatCountdown(min(1))).toEqual({ days: 0, hours: 0, minutes: 1, seconds: 0, units: ['minutes'] })
 	})
 
 	it('exactly 1 hour — zero minutes and seconds suppressed', () => {
-		const r = formatCountdown(hr(1))
-		expect(r).toMatchObject({ hours: 1, minutes: 0, seconds: 0 })
-		expect(r.units).toEqual(['hours'])
+		expect(formatCountdown(hr(1))).toEqual({ days: 0, hours: 1, minutes: 0, seconds: 0, units: ['hours'] })
 	})
 
 	it('exactly 1 day — zero hours, minutes, and seconds suppressed', () => {
-		const r = formatCountdown(day(1))
-		expect(r).toMatchObject({ days: 1, hours: 0, minutes: 0, seconds: 0 })
-		expect(r.units).toEqual(['days'])
+		expect(formatCountdown(day(1))).toEqual({ days: 1, hours: 0, minutes: 0, seconds: 0, units: ['days'] })
 	})
 })
 
@@ -119,33 +111,34 @@ const SUMMER = new Date('2026-06-15T12:00:00Z') // PDT season (UTC-7)
 const WINTER = new Date('2026-01-15T12:00:00Z') // PST season (UTC-8)
 
 describe('formatPeakHoursLocal', () => {
-	// Assert on the hour range — timezone abbreviations vary by Node.js ICU build
-	// (some give "CEST", others "GMT+2"). The hours are what matter.
+	// Timezone abbreviations vary by Node.js ICU build (e.g. "CEST" vs "GMT+2").
+	// For UTC the abbreviation is always "UTC" on every build — assert exactly.
+	// For other timezones, assert the hours prefix AND that a non-empty suffix is present.
 
-	it('Amsterdam in summer (PDT): 14:00–20:00', () => {
-		expect(formatPeakHoursLocal('Europe/Amsterdam', SUMMER)).toMatch(/^14:00–20:00/)
+	it('Amsterdam in summer (PDT): 14:00–20:00 + timezone suffix', () => {
+		expect(formatPeakHoursLocal('Europe/Amsterdam', SUMMER)).toMatch(/^14:00–20:00 \S+$/)
 	})
 
-	it('New York in summer (PDT): 08:00–14:00', () => {
-		expect(formatPeakHoursLocal('America/New_York', SUMMER)).toMatch(/^08:00–14:00/)
+	it('New York in summer (PDT): 08:00–14:00 + timezone suffix', () => {
+		expect(formatPeakHoursLocal('America/New_York', SUMMER)).toMatch(/^08:00–14:00 \S+$/)
 	})
 
-	it('London in summer (PDT): 13:00–19:00', () => {
-		expect(formatPeakHoursLocal('Europe/London', SUMMER)).toMatch(/^13:00–19:00/)
+	it('London in summer (PDT): 13:00–19:00 + timezone suffix', () => {
+		expect(formatPeakHoursLocal('Europe/London', SUMMER)).toMatch(/^13:00–19:00 \S+$/)
 	})
 
-	it('UTC in summer (PDT): 12:00–18:00', () => {
-		expect(formatPeakHoursLocal('UTC', SUMMER)).toMatch(/^12:00–18:00/)
+	it('UTC in summer (PDT): exactly "12:00–18:00 UTC"', () => {
+		expect(formatPeakHoursLocal('UTC', SUMMER)).toBe('12:00–18:00 UTC')
 	})
 
-	it('UTC in winter (PST): 13:00–19:00', () => {
+	it('UTC in winter (PST): exactly "13:00–19:00 UTC"', () => {
 		// PST is UTC-8, so peak window 05:00–11:00 PT = 13:00–19:00 UTC
-		expect(formatPeakHoursLocal('UTC', WINTER)).toMatch(/^13:00–19:00/)
+		expect(formatPeakHoursLocal('UTC', WINTER)).toBe('13:00–19:00 UTC')
 	})
 
-	it('New York in winter (PST): 08:00–14:00', () => {
+	it('New York in winter (PST): 08:00–14:00 + timezone suffix', () => {
 		// Both PT and ET shift together, so the local hour stays the same
-		expect(formatPeakHoursLocal('America/New_York', WINTER)).toMatch(/^08:00–14:00/)
+		expect(formatPeakHoursLocal('America/New_York', WINTER)).toMatch(/^08:00–14:00 \S+$/)
 	})
 
 	it('returns a non-empty string for any valid IANA timezone', () => {
