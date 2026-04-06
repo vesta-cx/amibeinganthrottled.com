@@ -7,7 +7,7 @@ const CopyString = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength
 const Strings30 = Schema.Array(CopyString).check(Schema.isMinLength(30), Schema.isMaxLength(30))
 
 // One locale's copy — three states, 30 strings each
-const LocaleSchema = Schema.Struct({
+export const LocaleSchema = Schema.Struct({
 	throttled: Strings30,
 	clear: Strings30,
 	weekend: Strings30,
