@@ -231,7 +231,10 @@ const main = async () => {
 	const tmpPath = `${outPath}.tmp`
 	writeFileSync(tmpPath, JSON.stringify(result, null, 2) + '\n', 'utf8')
 	renameSync(tmpPath, outPath) // atomic on POSIX
-	writeFileSync(indexPath, JSON.stringify({ current: date }, null, 2) + '\n', 'utf8')
+
+	const indexTmpPath = `${indexPath}.tmp`
+	writeFileSync(indexTmpPath, JSON.stringify({ current: date }, null, 2) + '\n', 'utf8')
+	renameSync(indexTmpPath, indexPath) // atomic on POSIX
 
 	console.log(`\n✓ ${outPath}`)
 	console.log(`✓ ${indexPath} → ${date}`)
