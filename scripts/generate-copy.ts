@@ -4,19 +4,16 @@ import { Effect, Schedule, Schema } from 'effect'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { CopyFileSchema, LocaleSchema, type CopyFile, type LocaleCopy } from '../src/lib/copy/schema.ts'
+import {
+	LOCALE_NAMES,
+	buildEnglishPrompt,
+	buildTranslationPrompt,
+	type TranslationLocale,
+} from '../src/lib/copy/prompts.ts'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const LOCALES = ['nl', 'de', 'fr', 'es', 'it'] as const
-type TranslationLocale = (typeof LOCALES)[number]
-
-const LOCALE_NAMES: Record<TranslationLocale, string> = {
-	nl: 'Dutch (Nederlands)',
-	de: 'German (Deutsch)',
-	fr: 'French (Français)',
-	es: 'Spanish (Español)',
-	it: 'Italian (Italiano)',
-}
+const LOCALES = Object.keys(LOCALE_NAMES) as TranslationLocale[]
 
 // Retry: up to 3 retries with exponential backoff starting at 1s
 const RETRY_POLICY = Schedule.exponential('1 second').pipe(Schedule.take(3))
@@ -87,43 +84,6 @@ const makeCallModel = (): ((prompt: string) => Effect.Effect<string, Error>) => 
 	console.error(`\nError: No API key available for provider "${provider}".\n${hint}`)
 	process.exit(1)
 }
-
-// ── Prompts ────────────────────────────────────────────────────────────────
-
-const LOCALE_SCHEMA = `{"throttled":["string x30"],"clear":["string x30"],"weekend":["string x30"]}`
-
-const buildEnglishPrompt = (dedup: string[]): string => {
-	const dedupBlock =
-		dedup.length > 0
-			? `\nDO NOT REPEAT any of these strings from last week:\n${dedup.map((s) => `- ${s}`).join('\n')}\n`
-			: ''
-
-	return `Generate copy for a site called amibeinganthrottled.com. It tells Claude Pro and Max subscribers whether they're currently in Anthropic's peak throttle window (weekdays 5–11 AM PT), how long until it ends, and makes the whole thing a bit of a joke.
-
-Generate exactly 30 unique strings for each of the 3 states below.
-
-TONE:
-- Short, dry, sarcastic — like a site that knows exactly what it is
-- "throttled": commiserate with the user, mild outrage, nod to the irony of paying for a subscription that throttles you
-- "clear": encouraging, slightly smug, tell them to get on with it
-- "weekend": chill, existential, gently suggest a life outside Claude
-- Max ~12 words per string
-- No emojis, no exclamation marks, no corporate warmth
-${dedupBlock}
-Return ONLY raw JSON matching this exact structure — no markdown, no backticks, no preamble:
-${LOCALE_SCHEMA}`
-}
-
-const buildTranslationPrompt = (locale: TranslationLocale, english: LocaleCopy): string =>
-	`Translate the following JSON copy strings from English to ${LOCALE_NAMES[locale]}.
-
-IMPORTANT: Translate IDIOMATICALLY, not literally. Adapt phrases culturally so the dry, sarcastic tone lands naturally in ${LOCALE_NAMES[locale]}. For example, "go crazy" should become the idiomatic equivalent in the target language, not a word-for-word rendering.
-
-TONE: Keep it short, dry, sarcastic. Max ~12 words per string. No emojis, no exclamation marks.
-
-Return ONLY raw JSON matching the exact same structure as the input — no markdown, no backticks, no preamble:
-
-${JSON.stringify(english, null, 2)}`
 
 // ── Validation ─────────────────────────────────────────────────────────────
 
