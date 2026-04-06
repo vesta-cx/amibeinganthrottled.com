@@ -1,0 +1,65 @@
+name: Generate Weekly Copy
+
+on:
+  schedule:
+    # Every Monday at 12:00 UTC
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+    # Allow manual triggering for testing
+
+jobs:
+  generate-copy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for pushing commits
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate copy
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          COPY_MODEL: ${{ vars.COPY_MODEL || 'anthropic/claude-haiku-4-5' }}
+        run: pnpm generate-copy
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.changes == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git with GitHub Actions bot identity
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Generate current date for commit message
+          current_date=$(date -u +%Y-%m-%d)
+          
+          # Add all changes and commit
+          git add .
+          git commit -m "chore: weekly copy $current_date"
+          
+          # Push to main
+          git push origin HEAD:main
