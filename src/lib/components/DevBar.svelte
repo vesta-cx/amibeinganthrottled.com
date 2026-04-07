@@ -49,8 +49,12 @@
 		}
 	}
 
+	const SSR_FALLBACK_POS: Record<Panel, { x: number; y: number }> = {
+		bloom: { x: 0, y: 0 }, type: { x: 0, y: 0 }, copy: { x: 0, y: 0 }, bar: { x: 0, y: 0 },
+	}
+
 	function loadStore(): PanelStore {
-		if (!browser) return { open: [], pos: defaultPositions() }
+		if (!browser) return { open: [], pos: SSR_FALLBACK_POS }
 		try {
 			const raw = localStorage.getItem(STORAGE_KEY)
 			if (raw) {
