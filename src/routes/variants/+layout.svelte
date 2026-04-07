@@ -24,7 +24,7 @@
 	import '@fontsource/geist-mono/700.css'
 
 	const STATES: (ThrottleState | 'live')[] = ['live', 'throttled', 'clear', 'weekend']
-	const VARIANTS = Array.from({ length: 19 }, (_, i) => i + 1)
+	const VARIANTS = Array.from({ length: 21 }, (_, i) => i + 1)
 
 	const FONTS = [
 		{ name: 'Fraunces',       css: "'Fraunces Variable', serif" },
