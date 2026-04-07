@@ -129,7 +129,7 @@ void main() {
   float shadowRaw = (1.0 - smoothstep(-u_dropShadowBlur, u_dropShadowBlur * 0.5, shadowDist)) * u_dropShadowAlpha;
   // Mask shadow to only show where it extends beyond the card body,
   // preventing a dark crescent at corners from the offset SDF
-  float cardMask = smoothstep(-1.0, 2.0, dist); // 0 inside card, 1 outside
+  float cardMask = smoothstep(0.5, 3.0, dist); // 0 at card edge, 1 well outside
   float shadowAlpha = shadowRaw * cardMask;
 
   // Antialiased edge: smooth alpha over 1.5px
