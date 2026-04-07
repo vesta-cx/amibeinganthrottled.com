@@ -85,10 +85,6 @@
 		};
 	});
 
-	export function startDeleting() {
-		tw.startDeleting();
-	}
-
 	export function startTyping() {
 		tw.startTyping();
 	}
