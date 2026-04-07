@@ -97,14 +97,14 @@ export function tickBlobs(
 			const ady = q.y - p.y;
 			const adist = Math.sqrt(adx * adx + ady * ady) + 0.001;
 
-			// Unique oscillation per pair — period 4-10 seconds
+			// Unique oscillation per pair — period 12-30 seconds (slow merge/split)
 			const pairSeed = (i * 31 + j * 17) & 0xffff;
-			const periodSec = 4 + (pairSeed % 360) / 60;
+			const periodSec = 12 + (pairSeed % 360) / 20;
 			const pairPhase = (pairSeed * 0.618) % (Math.PI * 2);
 			const oscillation = Math.sin(time / periodSec * Math.PI * 2 + pairPhase);
 
 			// Positive = attract, negative = repel; strength falls off with distance
-			const strength = 0.00005 * oscillation * Math.exp(-adist * 5.0) * scale;
+			const strength = 0.00001 * oscillation * Math.exp(-adist * 5.0) * scale;
 			const fx = (adx / adist) * strength;
 			const fy = (ady / adist) * strength;
 			p.vx += fx;
@@ -115,7 +115,7 @@ export function tickBlobs(
 			// Soft repulsion when close (linear pushback, no sharp spikes)
 			const overlap = (p.r + q.r) * 0.5 - adist;
 			if (overlap > 0) {
-				const push = overlap * 0.00005 * scale;
+				const push = overlap * 0.00001 * scale;
 				p.vx -= (adx / adist) * push;
 				p.vy -= (ady / adist) * push;
 				q.vx += (adx / adist) * push;
