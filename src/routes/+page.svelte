@@ -65,7 +65,7 @@
 		dev ? (page.url.searchParams.get('state') as ThrottleState | null) : null,
 	);
 	const result: import('$lib/throttle').ThrottleResult = $derived(getThrottleResult(stateOverride, now));
-	const state: ThrottleState = $derived(result.state);
+	const throttleState: ThrottleState = $derived(result.state);
 
 	// ── Pointer state ──
 	let mouseX = $state(0.5);
@@ -108,7 +108,7 @@
 
 	// Track state+theme changes for accent
 	$effect(() => {
-		const target = getStatePalette(state, theme).primary;
+		const target = getStatePalette(throttleState, theme).primary;
 		if (target[0] !== accentTo[0] || target[1] !== accentTo[1] || target[2] !== accentTo[2]) {
 			accentFrom = [...accentCurrent] as RGB;
 			accentTo = target;
@@ -142,8 +142,8 @@
 	let wT0 = $state(0);
 
 	$effect(() => {
-		const tb = TARGET_BLEND[state];
-		const tw = TARGET_WEEKEND[state];
+		const tb = TARGET_BLEND[throttleState];
+		const tw = TARGET_WEEKEND[throttleState];
 		if (tb !== blendTo) {
 			blendFrom = blend;
 			blendTo = tb;
@@ -207,7 +207,7 @@
 			if (wp >= 1.0) weekendBlend = wTo;
 
 			// Tick blob physics
-			tickBlobs(blobs, mouseX, mouseY, 0.016, state);
+			tickBlobs(blobs, mouseX, mouseY, 0.016, throttleState);
 
 			// Build FrameState
 			const frameState: FrameState = {
