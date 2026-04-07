@@ -304,14 +304,14 @@ void main() {
     float denom = 2.0 * sigma * sigma;
     vec3 bloomCol = vec3(0.0);
     float tw = 0.0;
-    // Separable gaussian: 9-tap H + 8-tap V (shared center)
-    for (int i = -4; i <= 4; i++) {
+    // Separable gaussian: 17-tap H + 16-tap V (shared center)
+    for (int i = -8; i <= 8; i++) {
       float fi = float(i);
       float w = exp(-(fi * fi) / denom);
       bloomCol += texture2D(u_blurredScene, vpUV + vec2(fi, 0.0) * bloomTexel * radius).rgb * w;
       tw += w;
     }
-    for (int i = -4; i <= 4; i++) {
+    for (int i = -8; i <= 8; i++) {
       if (i == 0) continue;
       float fi = float(i);
       float w = exp(-(fi * fi) / denom);
