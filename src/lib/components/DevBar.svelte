@@ -83,11 +83,10 @@
 	let openPanels = $state<Set<Panel>>(new Set(initial.open))
 	let panelPos = $state<Record<Panel, { x: number; y: number }>>(initial.pos)
 
-	// Persist on changes
+	// Persist on changes — read nested values to establish deep tracking
 	$effect(() => {
-		// Touch reactive dependencies
 		void openPanels.size
-		void panelPos
+		for (const p of Object.values(panelPos)) { void p.x; void p.y; }
 		saveStore()
 	})
 
