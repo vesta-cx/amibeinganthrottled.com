@@ -35,7 +35,7 @@
 
 	// ── Theme ──
 	// Server passes theme from cookie via layout.server.ts → no flash on hydration
-	const initialTheme = (page.data.theme as Theme) ?? 'mocha';
+	const initialTheme = (page.data.theme as Theme) ?? 'anthropic-dark';
 	let theme: Theme = $state(initialTheme);
 
 	function handleThemeSelect(t: string) {
