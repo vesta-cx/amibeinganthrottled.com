@@ -126,8 +126,8 @@
 		const vvp = window.visualViewport;
 		const pageW = vvp ? vvp.width : window.innerWidth;
 		const pageH = vvp ? vvp.height : window.innerHeight;
-		const vpW = Math.round(pageW * dpr);
-		const vpH = Math.round(pageH * dpr);
+		const vpW = Math.max(1, Math.round(pageW * dpr));
+		const vpH = Math.max(1, Math.round(pageH * dpr));
 
 		// Ensure scene FBO matches viewport
 		resizeFBO(gl, sceneFBO, vpW, vpH);

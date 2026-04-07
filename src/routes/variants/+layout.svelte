@@ -91,10 +91,10 @@
 	<!-- Variant slider -->
 	<div class="row-slider">
 		<span class="row-label">VARIANT</span>
-		<button class="nav-btn" onclick={() => setVariant(Math.max(1, currentVariant() - 1))} disabled={currentVariant() <= 1}>◀</button>
-		<input type="range" min="1" max={VARIANTS.length} value={currentVariant()} oninput={onVariantSlider} class="slider" />
-		<button class="nav-btn" onclick={() => setVariant(Math.min(VARIANTS.length, currentVariant() + 1))} disabled={currentVariant() >= VARIANTS.length}>▶</button>
-		<span class="value-label">v{currentVariant()}</span>
+		<button class="nav-btn" onclick={() => setVariant(Math.max(1, currentVariant - 1))} disabled={currentVariant <= 1}>◀</button>
+		<input type="range" min="1" max={VARIANTS.length} value={currentVariant} oninput={onVariantSlider} class="slider" />
+		<button class="nav-btn" onclick={() => setVariant(Math.min(VARIANTS.length, currentVariant + 1))} disabled={currentVariant >= VARIANTS.length}>▶</button>
+		<span class="value-label">v{currentVariant}</span>
 	</div>
 
 	<!-- Glass debug switcher -->

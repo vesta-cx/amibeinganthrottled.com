@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createTypewriter, type TypewriterPhase } from '$lib/typewriter';
+	import { createTypewriter } from '$lib/typewriter';
 	import { untrack } from 'svelte';
 	import type { ThrottleState } from '$lib/throttle';
 
@@ -18,7 +18,6 @@
 
 	let currentIndex = 0;
 	let text = $state('');
-	let phase: TypewriterPhase = $state('idle');
 
 	// Derive the string pool — only changes when state or locale actually change
 	const strings = $derived.by(() => {
@@ -50,7 +49,6 @@
 		const ticker = setInterval(() => {
 			typewriter.tick(TICK_INTERVAL_MS);
 			text = typewriter.text;
-			phase = typewriter.phase;
 		}, TICK_INTERVAL_MS);
 
 		return () => clearInterval(ticker);

@@ -224,9 +224,12 @@
 	$effect(() => {
 		let af: number;
 		let t = 0;
+		let lastMs: number | undefined;
 
-		const draw = () => {
+		const draw = (timestamp: number) => {
 			const nowMs = performance.now();
+			const dt = lastMs !== undefined ? (timestamp - lastMs) / 1000 : 0;
+			lastMs = timestamp;
 
 			// Animate colors
 			const accentP = Math.min((nowMs - accentT0) / TRANSITION_MS, 1.0);
@@ -278,7 +281,7 @@
 			bgRef?.render(frameState);
 			cardRef?.render(frameState);
 
-			t += 0.016;
+			t += dt;
 			af = requestAnimationFrame(draw);
 		};
 

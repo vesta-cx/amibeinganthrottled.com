@@ -228,7 +228,12 @@
 
 	$effect(() => {
 		if (!canvasEl) return;
-		initGL(canvasEl);
+		try {
+			initGL(canvasEl);
+		} catch (err) {
+			console.warn('DitherBackground: WebGL init failed, background disabled', err);
+			return;
+		}
 		return () => cleanupGL();
 	});
 </script>
