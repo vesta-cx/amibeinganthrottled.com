@@ -33,11 +33,6 @@ const THEME_PALETTES: Record<Theme, ThemePalette> = {
 	'solarized-light': { bg: [253, 246, 227], text: [101, 123, 131], subtext: [88, 110, 117] },
 };
 
-function isDarkTheme(theme: Theme): boolean {
-	return theme === 'mocha' || theme === 'macchiato' || theme === 'frappe'
-		|| theme === 'anthropic-dark' || theme === 'solarized-dark';
-}
-
 const CATPPUCCIN_DARK_STATE: Record<ThrottleState, StatePalette> = {
 	throttled: { primary: [243, 139, 168] },
 	clear: { primary: [166, 227, 161] },

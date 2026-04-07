@@ -49,7 +49,7 @@ let tickCount = 0;
  *
  * Applies: position integration, edge soft-bounce, center/orbiter attraction,
  * inter-orbiter repulsion, pointer repulsion, random jitter, velocity damping
- * and clamping. Non-free blobs slow down when throttled.
+ * and clamping. Non-free blobs slow down on weekend (0.4×); throttled runs at full speed.
  *
  * @param blobs   - mutable array of blobs (updated in place)
  * @param mouseX  - normalized pointer x [0,1]

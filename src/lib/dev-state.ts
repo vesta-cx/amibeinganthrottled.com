@@ -4,8 +4,10 @@ import { throttle, type ThrottleResult, type ThrottleState } from '$lib/throttle
  * Returns a fake ThrottleResult for a given state, or the real one if no override.
  * Used by design variants in dev mode to preview all three states.
  */
+const VALID_STATES = new Set<ThrottleState>(['throttled', 'clear', 'weekend'])
+
 export const getThrottleResult = (override: ThrottleState | null, now: Date): ThrottleResult => {
-	if (!override) return throttle(now)
+	if (!override || !VALID_STATES.has(override)) return throttle(now)
 
 	// Fake plausible values for each state
 	const fakes: Record<ThrottleState, ThrottleResult> = {
