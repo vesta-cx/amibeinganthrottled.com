@@ -68,10 +68,6 @@ export function tickBlobs(
 	const scale = dt * 60;
 	const speedFactor = state === 'throttled' ? 1.0 : state === 'weekend' ? 0.4 : 1.0;
 
-	// Use viewport center as the attractor for center blobs.
-	const cx = 0.5;
-	const cy = 0.5;
-
 	const edgeZone = 0.08;
 
 	for (let i = 0; i < blobs.length; i++) {
@@ -93,40 +89,6 @@ export function tickBlobs(
 		p.x = Math.max(0.001, Math.min(0.999, p.x));
 		p.y = Math.max(0.001, Math.min(0.999, p.y));
 
-		// Center blob attraction toward viewport center
-		if (i < NUM_CENTER) {
-			const dx = cx - p.x;
-			const dy = cy - p.y;
-			p.vx += dx * 0.003 * scale;
-			p.vy += dy * 0.003 * scale;
-		}
-		// Orbiter blobs: attract toward center, repel from each other
-		else if (i < ORBITER_END) {
-			const dx = cx - p.x;
-			const dy = cy - p.y;
-			p.vx += dx * 0.004 * scale;
-			p.vy += dy * 0.004 * scale;
-
-			for (let j = NUM_CENTER; j < ORBITER_END; j++) {
-				if (i === j) continue;
-				const q = blobs[j];
-				const rdx = p.x - q.x;
-				const rdy = p.y - q.y;
-				const rdist = Math.sqrt(rdx * rdx + rdy * rdy) + 0.001;
-				const repel = 0.00003 * Math.exp(-rdist * 25.0) * scale;
-				p.vx += (rdx / rdist) * repel;
-				p.vy += (rdy / rdist) * repel;
-			}
-		}
-
-		// Free-roaming blobs: weak center pull so they don't drift to the edges
-		if (i >= ORBITER_END) {
-			const dx = cx - p.x;
-			const dy = cy - p.y;
-			p.vx += dx * 0.001 * scale;
-			p.vy += dy * 0.001 * scale;
-		}
-
 		// Blob-to-blob interaction — oscillates between attract and repel per pair
 		// Each pair has its own phase offset and period, creating organic merge/split
 		for (let j = i + 1; j < blobs.length; j++) {
@@ -142,7 +104,7 @@ export function tickBlobs(
 			const oscillation = Math.sin(time / periodSec * Math.PI * 2 + pairPhase);
 
 			// Positive = attract, negative = repel; strength falls off with distance
-			const strength = 0.000002 * oscillation * Math.exp(-adist * 5.0) * scale;
+			const strength = 0.00001 * oscillation * Math.exp(-adist * 5.0) * scale;
 			const fx = (adx / adist) * strength;
 			const fy = (ady / adist) * strength;
 			p.vx += fx;
