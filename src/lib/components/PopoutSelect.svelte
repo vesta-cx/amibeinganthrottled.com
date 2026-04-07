@@ -4,6 +4,10 @@
 		label: string;
 		icon?: string;
 		swatch?: string;
+		/** Per-item background color for the dropdown row */
+		bg?: string;
+		/** Per-item text color for the dropdown row */
+		textColor?: string;
 	}
 
 	interface Props {
@@ -80,9 +84,11 @@
 					id="popout-item-{item.value}"
 					class="popout-item"
 					class:selected={item.value === selected}
+					class:has-bg={!!item.bg}
 					onclick={() => select(item.value)}
 					role="option"
 					aria-selected={item.value === selected}
+					style="{item.bg ? `background:${item.bg};` : ''}{item.textColor ? `color:${item.textColor};` : ''}"
 				>
 					{#if item.icon}
 						<span class="popout-icon">{@html item.icon}</span>
@@ -126,6 +132,7 @@
 		top: var(--offset, 0);
 		display: flex;
 		flex-direction: column;
+		gap: 1px;
 		background: rgba(17, 17, 27, 0.95);
 		backdrop-filter: blur(16px);
 		border: 1px solid rgba(205, 214, 244, 0.12);
@@ -135,6 +142,7 @@
 		min-width: 100%;
 		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 		animation: popout-in 0.15s ease-out;
+		overflow: hidden;
 	}
 
 	@keyframes popout-in {
@@ -163,13 +171,21 @@
 		height: 1.5rem;
 	}
 
-	.popout-item:hover {
+	.popout-item:hover:not(.has-bg) {
 		background: rgba(205, 214, 244, 0.08);
 		color: rgba(205, 214, 244, 0.9);
 	}
 
-	.popout-item.selected {
+	.popout-item.has-bg:hover {
+		filter: brightness(1.15);
+	}
+
+	.popout-item.selected:not(.has-bg) {
 		color: rgba(205, 214, 244, 1);
+		font-weight: 600;
+	}
+
+	.popout-item.selected.has-bg {
 		font-weight: 600;
 	}
 
