@@ -329,21 +329,25 @@ void main() {
     // Gamma-boost so more values cross the 0.5 overlay threshold
     blurred = pow(max(blurred, vec3(0.0)), vec3(0.4));
 
-    // Screen blend only — no darkening at the edge, ever.
-    // screen(base, blend) = 1 - (1-base)*(1-blend)
-    vec3 scr = 1.0 - (1.0 - tinted) * (1.0 - blurred);
+    // Soft overlay with chroma boost
+    vec3 mul = 2.0 * tinted * blurred;
+    vec3 scr = 1.0 - 2.0 * (1.0 - tinted) * (1.0 - blurred);
+    float blend = smoothstep(0.4, 0.6, dot(blurred, vec3(0.333)));
+    vec3 ov = mix(mul, scr, blend);
 
-    // Saturate the brightened areas — boost chroma so it glows colored, not white
-    float scrLum = dot(scr, vec3(0.2126, 0.7152, 0.0722));
+    // Saturate the brightened areas
+    float ovLum = dot(ov, vec3(0.2126, 0.7152, 0.0722));
     float baseLum = dot(tinted, vec3(0.2126, 0.7152, 0.0722));
-    float lift = max(scrLum - baseLum, 0.0);
-    vec3 saturated = mix(vec3(scrLum), scr, 1.0 + lift * 4.0);
-    scr = mix(scr, saturated, smoothstep(0.0, 0.2, lift));
+    float lift = max(ovLum - baseLum, 0.0);
+    vec3 saturated = mix(vec3(ovLum), ov, 1.0 + lift * 4.0);
+    ov = mix(ov, saturated, smoothstep(0.0, 0.2, lift));
 
-    tinted = mix(tinted, scr, edgeAlpha);
+    tinted = mix(tinted, ov, edgeAlpha);
   }
 
-  // Output with alpha for AA edge blending (canvas is transparent outside)
-  gl_FragColor = vec4(tinted, alpha);
+  // Premultiplied alpha output — prevents dark fringe at AA edges.
+  // Without premultiply, semi-transparent edge pixels blend with the
+  // canvas clear color (black), creating a visible dark seam.
+  gl_FragColor = vec4(tinted * alpha, alpha);
 }
 `;

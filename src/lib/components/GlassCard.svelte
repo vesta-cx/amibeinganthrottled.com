@@ -294,7 +294,7 @@
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(0, 0, pw, ph);
 		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // premultiplied alpha
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.useProgram(glassProg);
