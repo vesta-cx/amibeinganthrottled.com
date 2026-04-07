@@ -324,7 +324,7 @@ void main() {
     // Gamma-boost the blurred sample so more values cross the 0.5 threshold.
     // Without this, the pre-blurred quarter-res averages sit below 0.5 and
     // overlay only ever multiplies (darkens). Gamma 0.5 lifts midtones.
-    blurred = pow(blurred, vec3(0.5));
+    blurred = pow(blurred, vec3(0.35));
     // Overlay blend keyed on the (gamma-boosted) blend layer
     vec3 ov;
     ov.r = blurred.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
