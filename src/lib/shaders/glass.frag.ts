@@ -324,9 +324,11 @@ void main() {
     float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
     float brightGate = smoothstep(0.15, 0.5, bloomLum);
     float gated = edgeProximity * brightGate;
-    // Lerp toward bloom color where bloom is present — this overrides
-    // edge darkening locally instead of compositing on top of it
-    tinted = mix(tinted, bloomCol, gated);
+    // First undo edge darkening where bloom is active, then screen blend.
+    // Lift tinted toward the undarkened refracted color proportional to bloom,
+    // so the screen blend has a clean base to work with.
+    vec3 undarkened = mix(tinted, bloomCol * 0.5 + tinted * 0.5, gated);
+    tinted = 1.0 - (1.0 - undarkened) * (1.0 - bloomCol * gated);
   }
 
   // Output with alpha for AA edge blending (canvas is transparent outside)
