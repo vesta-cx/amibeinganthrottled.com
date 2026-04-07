@@ -343,6 +343,10 @@ void main() {
     vec3 saturatedOv = mix(vec3(ovLum), ov, 1.0 + lift * 4.0); // push saturation proportional to lift
     ov = mix(ov, saturatedOv, smoothstep(0.0, 0.2, lift));
 
+    // Clamp: overlay can only brighten near the AA edge to prevent dark seam.
+    // Deeper into the card interior, allow full overlay (including darkening).
+    float edgeFade = smoothstep(0.0, -8.0, dist); // 0 at boundary, 1 deeper in
+    ov = mix(max(ov, tinted), ov, edgeFade);       // near edge: only brighten
     tinted = mix(tinted, ov, edgeAlpha);
   }
 
