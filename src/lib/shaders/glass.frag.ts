@@ -321,12 +321,10 @@ void main() {
       tw += w;
     }
     blurred /= tw;
-    // Overlay keyed on blend layer brightness
-    vec3 ov;
-    ov.r = blurred.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
-    ov.g = blurred.g < 0.5 ? 2.0 * tinted.g * blurred.g : 1.0 - 2.0 * (1.0 - tinted.g) * (1.0 - blurred.g);
-    ov.b = blurred.b < 0.5 ? 2.0 * tinted.b * blurred.b : 1.0 - 2.0 * (1.0 - tinted.b) * (1.0 - blurred.b);
-    tinted = mix(tinted, ov, edgeAlpha);
+    // Screen blend: only brightens, never darkens. Drop shadow handles darkening.
+    // screen(base, blend) = 1 - (1-base)*(1-blend)
+    vec3 screened = 1.0 - (1.0 - tinted) * (1.0 - blurred);
+    tinted = mix(tinted, screened, edgeAlpha);
   }
 
   // Output with alpha for AA edge blending (canvas is transparent outside)
