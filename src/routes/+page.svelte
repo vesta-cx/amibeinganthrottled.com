@@ -14,7 +14,7 @@
 		type RGB,
 		type Theme,
 	} from '$lib/colors';
-	import type { FrameState } from '$lib/types';
+	import { type FrameState, MAX_CLICKS } from '$lib/types';
 	import DitherBackground from '$lib/components/DitherBackground.svelte';
 	import GlassCard from '$lib/components/GlassCard.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
@@ -191,7 +191,7 @@
 		// Evict expired or overflow entries
 		const now = performance.now() / 1000;
 		while (clicks.length > 0 && now - clicks[0].birth > 5) clicks.shift();
-		if (clicks.length > 8) clicks.shift();
+		if (clicks.length > MAX_CLICKS) clicks.shift();
 	}
 
 	function onPointerDown(e: PointerEvent) {

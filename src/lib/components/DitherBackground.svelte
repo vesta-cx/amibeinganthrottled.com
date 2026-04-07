@@ -8,7 +8,7 @@
 	import { createProgram, setUniforms } from '$lib/gl/program';
 	import { createFBO, resizeFBO, destroyFBO, type FBO } from '$lib/gl/fbo';
 	import { createBayerTexture } from '$lib/gl/bayer';
-	import type { FrameState } from '$lib/types';
+	import { type FrameState, MAX_CLICKS } from '$lib/types';
 
 	const OVERFLOW = FROST.noiseScale;
 	const BLUR_SCALE = 0.25;
@@ -104,8 +104,8 @@
 		}
 
 		// Reduced-resolution dimensions for dither + blur passes
-		const bw = Math.round(w * BLUR_SCALE);
-		const bh = Math.round(h * BLUR_SCALE);
+		const bw = Math.max(1, Math.round(w * BLUR_SCALE));
+		const bh = Math.max(1, Math.round(h * BLUR_SCALE));
 
 		// Resize FBOs if needed
 		resizeFBO(gl, ditherFBO, bw, bh);
@@ -155,7 +155,7 @@
 		});
 
 		// Pass click events as u_clicks[i] uniforms
-		for (let i = 0; i < 8; i++) {
+		for (let i = 0; i < MAX_CLICKS; i++) {
 			const loc = gl.getUniformLocation(ditherProg, `u_clicks[${i}]`);
 			if (!loc) continue;
 			const click = state.clicks[i];

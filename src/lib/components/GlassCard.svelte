@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { FrameState } from '$lib/types';
+	import { type FrameState, MAX_CLICKS } from '$lib/types';
 	import { NUM_BLOBS } from '$lib/blobs';
 	import { GLASS, LIGHTING, FROST, DITHER } from '$lib/constants';
 	import { FULLSCREEN_QUAD_VERT } from '$lib/shaders/fullscreen-quad.vert';
@@ -132,10 +132,10 @@
 		// Ensure scene FBO matches viewport
 		resizeFBO(gl, sceneFBO, vpW, vpH);
 
-		// Blur FBOs at quarter resolution
+		// Blur FBOs at quarter resolution (minimum 1px to avoid invalid texImage2D)
 		const blurScale = 0.25;
-		const bw = Math.round(vpW * blurScale);
-		const bh = Math.round(vpH * blurScale);
+		const bw = Math.max(1, Math.round(vpW * blurScale));
+		const bh = Math.max(1, Math.round(vpH * blurScale));
 		resizeFBO(gl, blurFBO_A, bw, bh);
 		resizeFBO(gl, blurFBO_B, bw, bh);
 
@@ -188,7 +188,7 @@
 		});
 
 		// Pass click events as u_clicks[i] uniforms
-		for (let i = 0; i < 8; i++) {
+		for (let i = 0; i < MAX_CLICKS; i++) {
 			const loc = gl.getUniformLocation(ditherProg, `u_clicks[${i}]`);
 			if (!loc) continue;
 			const click = state.clicks[i];
@@ -325,11 +325,16 @@
 	}
 
 	onMount(() => {
-		initGL();
+		try {
+			initGL();
+		} catch (e) {
+			console.warn('[GlassCard] WebGL init failed, rendering disabled:', e);
+			return;
+		}
 		return () => cleanupGL();
 	});
 </script>
 
 <div class="relative w-full h-full">
-	<canvas bind:this={canvas} class="block w-full h-full" style="background: transparent;"></canvas>
+	<canvas bind:this={canvas} class="block w-full h-full bg-transparent"></canvas>
 </div>

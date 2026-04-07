@@ -5,6 +5,7 @@
  * generated via a factory function.
  */
 import { BLOBS } from '../constants';
+import { MAX_CLICKS } from '../types';
 
 const ditherFrag = (numBlobs: number) => `
 precision highp float;
@@ -21,7 +22,7 @@ uniform vec2  u_resolution;
 uniform vec4  u_offset; // x: offX, y: offY, z: scaleX, w: scaleY
 uniform vec3  u_blobs[${numBlobs}]; // xy = pos, z = radius
 uniform float u_alpha; // global alpha multiplier
-uniform vec3  u_clicks[${8}]; // each: x, y (normalized), z = age in seconds (>5 = inactive)
+uniform vec3  u_clicks[${MAX_CLICKS}]; // each: x, y (normalized), z = age in seconds (>5 = inactive)
 
 // Bayer 8x8 dither via texture lookup
 uniform sampler2D u_bayerTex;
