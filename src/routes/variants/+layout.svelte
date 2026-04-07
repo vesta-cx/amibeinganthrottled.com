@@ -31,7 +31,7 @@
 		(page.url.searchParams.get('state') as ThrottleState | null) ?? 'live'
 	)
 
-	const currentVariant = $derived(() => {
+	const currentVariant = $derived.by(() => {
 		const match = page.url.pathname.match(/\/v(\d+)/)
 		return match ? parseInt(match[1]) : 1
 	})
