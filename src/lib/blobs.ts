@@ -61,7 +61,11 @@ export function tickBlobs(
 	mouseY: number,
 	time: number,
 	state: ThrottleState,
+	dt = 1 / 60,
 ): void {
+	// Normalize all per-frame forces to 60 fps. At 60 Hz dt≈1/60 so scale=1;
+	// at 120 Hz dt≈1/120 so scale=0.5 (half force, double frames = same motion).
+	const scale = dt * 60;
 	const speedFactor = state === 'throttled' ? 1.0 : state === 'weekend' ? 0.4 : 1.0;
 
 	// Use viewport center as the attractor for center blobs.
@@ -76,14 +80,14 @@ export function tickBlobs(
 		const s = isFree ? 1.0 : speedFactor;
 
 		// Integrate position
-		p.x += p.vx * s;
-		p.y += p.vy * s;
+		p.x += p.vx * s * scale;
+		p.y += p.vy * s * scale;
 
 		// Soft edge bounce -- push velocity away from edges
-		if (p.x < edgeZone) p.vx += (edgeZone - p.x) * 0.002;
-		else if (p.x > 1 - edgeZone) p.vx -= (p.x - (1 - edgeZone)) * 0.002;
-		if (p.y < edgeZone) p.vy += (edgeZone - p.y) * 0.002;
-		else if (p.y > 1 - edgeZone) p.vy -= (p.y - (1 - edgeZone)) * 0.002;
+		if (p.x < edgeZone) p.vx += (edgeZone - p.x) * 0.002 * scale;
+		else if (p.x > 1 - edgeZone) p.vx -= (p.x - (1 - edgeZone)) * 0.002 * scale;
+		if (p.y < edgeZone) p.vy += (edgeZone - p.y) * 0.002 * scale;
+		else if (p.y > 1 - edgeZone) p.vy -= (p.y - (1 - edgeZone)) * 0.002 * scale;
 
 		// Hard clamp to [0,1]
 		p.x = Math.max(0.001, Math.min(0.999, p.x));
@@ -93,15 +97,15 @@ export function tickBlobs(
 		if (i < NUM_CENTER) {
 			const dx = cx - p.x;
 			const dy = cy - p.y;
-			p.vx += dx * 0.0003;
-			p.vy += dy * 0.0003;
+			p.vx += dx * 0.0003 * scale;
+			p.vy += dy * 0.0003 * scale;
 		}
 		// Orbiter blobs: attract toward center, repel from each other
 		else if (i < ORBITER_END) {
 			const dx = cx - p.x;
 			const dy = cy - p.y;
-			p.vx += dx * 0.0004;
-			p.vy += dy * 0.0004;
+			p.vx += dx * 0.0004 * scale;
+			p.vy += dy * 0.0004 * scale;
 
 			for (let j = NUM_CENTER; j < ORBITER_END; j++) {
 				if (i === j) continue;
@@ -109,7 +113,7 @@ export function tickBlobs(
 				const rdx = p.x - q.x;
 				const rdy = p.y - q.y;
 				const rdist = Math.sqrt(rdx * rdx + rdy * rdy) + 0.001;
-				const repel = 0.000003 * Math.exp(-rdist * 25.0);
+				const repel = 0.000003 * Math.exp(-rdist * 25.0) * scale;
 				p.vx += (rdx / rdist) * repel;
 				p.vy += (rdy / rdist) * repel;
 			}
@@ -130,7 +134,7 @@ export function tickBlobs(
 			const oscillation = Math.sin(time / periodSec * Math.PI * 2 + pairPhase);
 
 			// Positive = attract, negative = repel; strength falls off with distance
-			const strength = 0.0000002 * oscillation * Math.exp(-adist * 5.0);
+			const strength = 0.0000002 * oscillation * Math.exp(-adist * 5.0) * scale;
 			const fx = (adx / adist) * strength;
 			const fy = (ady / adist) * strength;
 			p.vx += fx;
@@ -141,7 +145,7 @@ export function tickBlobs(
 			// Soft repulsion when close (linear pushback, no sharp spikes)
 			const overlap = (p.r + q.r) * 0.5 - adist;
 			if (overlap > 0) {
-				const push = overlap * 0.0004;
+				const push = overlap * 0.0004 * scale;
 				p.vx -= (adx / adist) * push;
 				p.vy -= (ady / adist) * push;
 				q.vx += (adx / adist) * push;
@@ -149,25 +153,27 @@ export function tickBlobs(
 			}
 		}
 
-		// Radius pulsing — slow breathing (~0.18 Hz at 60fps)
+		// Radius pulsing — driven by elapsed time, already frame-rate independent
 		p.r = p.baseR * (1.0 + 0.15 * Math.sin(time * 0.18 + p.phase));
 
-		// Random jitter
-		p.vx += (Math.random() - 0.5) * 0.00001;
-		p.vy += (Math.random() - 0.5) * 0.00001;
+		// Random jitter — scale by sqrt(dt*60) so variance is time-proportional
+		const jitterScale = Math.sqrt(scale);
+		p.vx += (Math.random() - 0.5) * 0.00001 * jitterScale;
+		p.vy += (Math.random() - 0.5) * 0.00001 * jitterScale;
 
 		// Pointer repulsion (exponential falloff)
 		{
 			const dx = p.x - mouseX;
 			const dy = p.y - mouseY;
 			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
-			const repel = 0.00002 * Math.exp(-dist * 30.0);
+			const repel = 0.00002 * Math.exp(-dist * 30.0) * scale;
 			p.vx += (dx / dist) * repel;
 			p.vy += (dy / dist) * repel;
 		}
 
-		// Damping — all blobs get friction so click impulses decay gradually
-		const damp = i < ORBITER_END ? 0.994 : 0.988;
+		// Damping — time-corrected so impulse decay is stable across frame rates
+		const dampBase = i < ORBITER_END ? 0.994 : 0.988;
+		const damp = Math.pow(dampBase, scale);
 		p.vx *= damp;
 		p.vy *= damp;
 

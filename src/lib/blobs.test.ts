@@ -24,7 +24,7 @@ describe('tickBlobs', () => {
 		const blobs = createBlobs();
 		const before = blobs.map((b) => ({ x: b.x, y: b.y }));
 
-		tickBlobs(blobs, 0.5, 0.5, 0, 'clear');
+		tickBlobs(blobs, 0.5, 0.5, 0, 'clear', 1 / 60);
 
 		const moved = blobs.some((b, i) => b.x !== before[i].x || b.y !== before[i].y);
 		expect(moved).toBe(true);
@@ -34,7 +34,7 @@ describe('tickBlobs', () => {
 		const blobs = createBlobs();
 
 		for (let t = 0; t < 1000; t++) {
-			tickBlobs(blobs, Math.random(), Math.random(), 0, 'throttled');
+			tickBlobs(blobs, Math.random(), Math.random(), 0, 'throttled', 1 / 60);
 		}
 
 		for (const b of blobs) {

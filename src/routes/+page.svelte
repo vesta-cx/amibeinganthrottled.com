@@ -248,12 +248,13 @@
 			weekendBlend = wFrom + (wTo - wFrom) * easeCubicInOut(wp);
 			if (wp >= 1.0) weekendBlend = wTo;
 
-			// Smooth pointer toward target
-			mouseX += (targetMouseX - mouseX) * MOUSE_LERP;
-			mouseY += (targetMouseY - mouseY) * MOUSE_LERP;
+			// Smooth pointer toward target — frame-rate independent exponential lerp
+			const lerpFactor = 1 - Math.pow(1 - MOUSE_LERP, dt * 60);
+			mouseX += (targetMouseX - mouseX) * lerpFactor;
+			mouseY += (targetMouseY - mouseY) * lerpFactor;
 
 			// Tick blob physics
-			tickBlobs(blobs, mouseX, mouseY, t, throttleState);
+			tickBlobs(blobs, mouseX, mouseY, t, throttleState, dt);
 
 			// Continuous repulsion while pointer is held
 			if (pointerDown) {

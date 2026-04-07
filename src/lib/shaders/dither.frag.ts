@@ -133,7 +133,7 @@ float computeField(vec2 nxy, float aspect, float t, float cb, float cw) {
 
   // Weekend click displacement — warp aurora UVs before computing aurora
   vec2 auroraUV = vec2(nx, ny);
-  for (int i = 0; i < ${8}; i++) {
+  for (int i = 0; i < ${MAX_CLICKS}; i++) {
     float age = u_clicks[i].z;
     if (age >= 5.0) continue;
     float cdx = (auroraUV.x - u_clicks[i].x) * aspect;
@@ -173,7 +173,7 @@ float computeField(vec2 nxy, float aspect, float t, float cb, float cw) {
   // Throttled: each click adds a decaying brightness hotspot (accumulates)
   float totalGlow = 0.0;
   float totalVoroBoost = 0.0;
-  for (int i = 0; i < ${8}; i++) {
+  for (int i = 0; i < ${MAX_CLICKS}; i++) {
     float age = u_clicks[i].z;
     if (age >= 5.0) continue;
 
