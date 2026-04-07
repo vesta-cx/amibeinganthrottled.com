@@ -43,7 +43,7 @@
 </script>
 
 <div
-	class="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 px-6 py-4"
+	class="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 px-8 py-6 sm:px-10 sm:py-8"
 	style="color: {subtextColor}; border-top: 1px solid rgba(255,255,255,0.06)"
 >
 	<!-- Mobile: Verdict first, Desktop: bottom-left -->
