@@ -294,12 +294,13 @@ void main() {
   vec3 saturated = mix(vec3(luma), tinted, 1.0 + satBoost * 6.0);
   tinted = mix(tinted, saturated, satBoost);
 
-  // Bloom: gaussian-blurred background screen-blended onto the card surface.
-  // Applies everywhere — bright blobs bleed into adjacent dark areas naturally.
-  // Luminance gating ensures only genuinely bright regions contribute glow.
-  {
+  // Edge bloom: gaussian-blurred background screen-blended near card edges.
+  // Only activates within u_edgeBloomRadius of the SDF boundary — blobs in
+  // the card interior don't bloom, only those near the edge bleed inward.
+  float edgeProximity = smoothstep(-u_edgeBloomRadius, 0.0, dist) * u_edgeBloom;
+  if (edgeProximity > 0.001) {
     vec2 bloomTexel = 1.0 / u_sceneResolution;
-    float radius = u_edgeBloomRadius;
+    float radius = edgeProximity * 60.0;
     float sigma = radius / 3.0;
     float denom = 2.0 * sigma * sigma;
     vec3 bloomCol = vec3(0.0);
@@ -321,7 +322,7 @@ void main() {
     bloomCol /= tw;
     float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
     float brightGate = smoothstep(0.15, 0.5, bloomLum);
-    float gated = u_edgeBloom * brightGate;
+    float gated = edgeProximity * brightGate;
     // Screen blend: only lifts where blurred background is bright
     tinted = 1.0 - (1.0 - tinted) * (1.0 - bloomCol * gated);
   }
