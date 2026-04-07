@@ -1,4 +1,5 @@
 import type { ThrottleState } from '$lib/throttle';
+import { BLOBS } from './constants';
 
 export type Blob = {
 	x: number;
@@ -8,7 +9,7 @@ export type Blob = {
 	r: number;
 };
 
-export const NUM_BLOBS = 14;
+export const NUM_BLOBS = BLOBS.count;
 
 /** 1 center blob, 3 edge orbiters, rest are free roamers. */
 const NUM_CENTER = 1;
