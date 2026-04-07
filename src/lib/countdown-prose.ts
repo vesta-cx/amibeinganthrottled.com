@@ -74,8 +74,9 @@ export function formatCountdownProse(
 	}
 
 	const parts: CountdownPart[] = [all[start]]
-	if (start + 1 < all.length && all[start + 1].n > 0) {
-		parts.push(all[start + 1])
+	const next = all.findIndex((p, i) => i > start && p.n > 0)
+	if (next !== -1) {
+		parts.push(all[next])
 	}
 
 	const formatted =
