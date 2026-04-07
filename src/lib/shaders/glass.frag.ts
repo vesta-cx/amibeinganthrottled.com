@@ -126,45 +126,14 @@ void main() {
   // Drop shadow (rendered outside the glass shape)
   vec2 shadowP = p_px + u_dropShadowOffset;
   float shadowDist = sdRoundBox(shadowP, half_px, r, u_sminK);
-  float shadowAlpha = (1.0 - smoothstep(-u_dropShadowBlur, u_dropShadowBlur * 0.5, shadowDist)) * u_dropShadowAlpha;
+  float shadowRaw = (1.0 - smoothstep(-u_dropShadowBlur, u_dropShadowBlur * 0.5, shadowDist)) * u_dropShadowAlpha;
+  // Mask shadow to only show where it extends beyond the card body,
+  // preventing a dark crescent at corners from the offset SDF
+  float cardMask = smoothstep(-1.0, 2.0, dist); // 0 inside card, 1 outside
+  float shadowAlpha = shadowRaw * cardMask;
 
   // Antialiased edge: smooth alpha over 1.5px
   float alpha = 1.0 - smoothstep(-1.5, 0.5, dist);
-
-  // Outer edge bloom: bright background bleeds outward past the card boundary
-  // Uses the same gaussian blur + screen blend + luminance gating as inner bloom
-  float outerBloom = smoothstep(u_edgeBloomRadius, 0.0, dist) * u_edgeBloom;
-  if (alpha < 0.001 && outerBloom > 0.001) {
-    vec2 bloomTexel = 1.0 / u_sceneResolution;
-    float radius = outerBloom * 32.0;
-    float sigma = radius / 3.0;
-    float denom = 2.0 * sigma * sigma;
-    vec3 bloomCol = vec3(0.0);
-    float tw = 0.0;
-    for (int i = -4; i <= 4; i++) {
-      float fi = float(i);
-      float w = exp(-(fi * fi) / denom);
-      bloomCol += texture2D(u_blurredScene, vpUV + vec2(fi, 0.0) * bloomTexel * radius).rgb * w;
-      tw += w;
-    }
-    for (int i = -4; i <= 4; i++) {
-      if (i == 0) continue;
-      float fi = float(i);
-      float w = exp(-(fi * fi) / denom);
-      bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, fi) * bloomTexel * radius).rgb * w;
-      tw += w;
-    }
-    bloomCol /= tw;
-    float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
-    float brightGate = smoothstep(0.15, 0.5, bloomLum);
-    float gated = outerBloom * brightGate;
-    // Combine with drop shadow: bloom adds light, shadow adds dark
-    vec3 bloomOut = bloomCol * gated;
-    float bloomAlpha = max(shadowAlpha, gated * bloomLum);
-    gl_FragColor = vec4(bloomOut + vec3(0.0) * shadowAlpha, bloomAlpha);
-    return;
-  }
-
   if (alpha < 0.001) {
     // Outside glass: only show drop shadow (original behavior)
     if (shadowAlpha > 0.001) {
@@ -325,21 +294,17 @@ void main() {
   vec3 saturated = mix(vec3(luma), tinted, 1.0 + satBoost * 6.0);
   tinted = mix(tinted, saturated, satBoost);
 
-  // Inner edge bloom: screen-blend blurred background into card edges
-  // Only brightens where the outside is actually bright — dark stays dark
-  // Samples are spread wider near the edge for a soft, diffuse bleed
-  float innerBloom = smoothstep(-u_edgeBloomRadius, 0.0, dist) * u_edgeBloom;
-  if (innerBloom > 0.001) {
-    // Gaussian blur matching the separable blur shader's approach:
-    // radius scales with edge proximity, sigma = radius/3, exp(-d²/2σ²)
-    // Two 1D passes collapsed into a single pass: sample H then V offsets
+  // Bloom: gaussian-blurred background screen-blended onto the card surface.
+  // Applies everywhere — bright blobs bleed into adjacent dark areas naturally.
+  // Luminance gating ensures only genuinely bright regions contribute glow.
+  {
     vec2 bloomTexel = 1.0 / u_sceneResolution;
-    float radius = innerBloom * 32.0;
+    float radius = u_edgeBloomRadius;
     float sigma = radius / 3.0;
     float denom = 2.0 * sigma * sigma;
     vec3 bloomCol = vec3(0.0);
     float tw = 0.0;
-    // 9-tap horizontal + 9-tap vertical (shared center tap)
+    // Separable gaussian: 9-tap H + 8-tap V (shared center)
     for (int i = -4; i <= 4; i++) {
       float fi = float(i);
       float w = exp(-(fi * fi) / denom);
@@ -347,18 +312,17 @@ void main() {
       tw += w;
     }
     for (int i = -4; i <= 4; i++) {
-      if (i == 0) continue; // already sampled center
+      if (i == 0) continue;
       float fi = float(i);
       float w = exp(-(fi * fi) / denom);
       bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, fi) * bloomTexel * radius).rgb * w;
       tw += w;
     }
     bloomCol /= tw;
-    // Gate by luminance: only bleed where the background is genuinely bright
     float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
     float brightGate = smoothstep(0.15, 0.5, bloomLum);
-    float gated = innerBloom * brightGate;
-    // Screen blend: only lifts bright areas, leaves dark untouched
+    float gated = u_edgeBloom * brightGate;
+    // Screen blend: only lifts where blurred background is bright
     tinted = 1.0 - (1.0 - tinted) * (1.0 - bloomCol * gated);
   }
 
