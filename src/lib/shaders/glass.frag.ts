@@ -329,11 +329,12 @@ void main() {
     // Gamma-boost so more values cross the 0.5 overlay threshold
     blurred = pow(max(blurred, vec3(0.0)), vec3(0.4));
 
-    // Overlay blend keyed on the (gamma-boosted) blend layer
-    vec3 ov;
-    ov.r = blurred.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
-    ov.g = blurred.g < 0.5 ? 2.0 * tinted.g * blurred.g : 1.0 - 2.0 * (1.0 - tinted.g) * (1.0 - blurred.g);
-    ov.b = blurred.b < 0.5 ? 2.0 * tinted.b * blurred.b : 1.0 - 2.0 * (1.0 - tinted.b) * (1.0 - blurred.b);
+    // Soft overlay: smooth lerp between multiply and screen paths instead of
+    // hard 0.5 branch. Eliminates the dark seam at the cutoff boundary.
+    vec3 mul = 2.0 * tinted * blurred;                            // multiply path
+    vec3 scr = 1.0 - 2.0 * (1.0 - tinted) * (1.0 - blurred);    // screen path
+    float blend = smoothstep(0.4, 0.6, dot(blurred, vec3(0.333)));// luminance-based soft switch
+    vec3 ov = mix(mul, scr, blend);
 
     // Saturate the brightened areas — boost chroma where overlay lifts
     float ovLum = dot(ov, vec3(0.2126, 0.7152, 0.0722));
