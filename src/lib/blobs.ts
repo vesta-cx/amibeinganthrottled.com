@@ -42,10 +42,8 @@ export function createBlobs(): Blob[] {
 	});
 }
 
-let tickCount = 0;
-
 /**
- * Advance blob physics by one tick.
+ * Advance blob physics by one frame.
  *
  * Applies: position integration, edge soft-bounce, center/orbiter attraction,
  * inter-orbiter repulsion, pointer repulsion, random jitter, velocity damping
@@ -54,17 +52,16 @@ let tickCount = 0;
  * @param blobs   - mutable array of blobs (updated in place)
  * @param mouseX  - normalized pointer x [0,1]
  * @param mouseY  - normalized pointer y [0,1]
- * @param dt      - unused, reserved for future variable-rate stepping
+ * @param time    - elapsed seconds from the RAF loop (used for oscillation phases)
  * @param state   - current throttle state (affects speed of non-free blobs)
  */
 export function tickBlobs(
 	blobs: Blob[],
 	mouseX: number,
 	mouseY: number,
-	_dt: number,
+	time: number,
 	state: ThrottleState,
 ): void {
-	tickCount++;
 	const speedFactor = state === 'throttled' ? 1.0 : state === 'weekend' ? 0.4 : 1.0;
 
 	// Use viewport center as the attractor for center blobs.
@@ -126,11 +123,11 @@ export function tickBlobs(
 			const ady = q.y - p.y;
 			const adist = Math.sqrt(adx * adx + ady * ady) + 0.001;
 
-			// Unique oscillation per pair — period 4-10 seconds (240-600 ticks at 60fps)
+			// Unique oscillation per pair — period 4-10 seconds
 			const pairSeed = (i * 31 + j * 17) & 0xffff;
-			const period = 240 + (pairSeed % 360);
+			const periodSec = 4 + (pairSeed % 360) / 60;
 			const pairPhase = (pairSeed * 0.618) % (Math.PI * 2);
-			const oscillation = Math.sin(tickCount / period * Math.PI * 2 + pairPhase);
+			const oscillation = Math.sin(time / periodSec * Math.PI * 2 + pairPhase);
 
 			// Positive = attract, negative = repel; strength falls off with distance
 			const strength = 0.0000002 * oscillation * Math.exp(-adist * 5.0);
@@ -152,8 +149,8 @@ export function tickBlobs(
 			}
 		}
 
-		// Radius pulsing — slow breathing
-		p.r = p.baseR * (1.0 + 0.15 * Math.sin(tickCount * 0.003 + p.phase));
+		// Radius pulsing — slow breathing (~0.18 Hz at 60fps)
+		p.r = p.baseR * (1.0 + 0.15 * Math.sin(time * 0.18 + p.phase));
 
 		// Random jitter
 		p.vx += (Math.random() - 0.5) * 0.00001;

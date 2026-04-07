@@ -250,7 +250,7 @@
 			mouseY += (targetMouseY - mouseY) * MOUSE_LERP;
 
 			// Tick blob physics
-			tickBlobs(blobs, mouseX, mouseY, 0.016, throttleState);
+			tickBlobs(blobs, mouseX, mouseY, t, throttleState);
 
 			// Continuous repulsion while pointer is held
 			if (pointerDown) {
