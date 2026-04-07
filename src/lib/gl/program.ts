@@ -77,6 +77,10 @@ export function createProgram(
 		throw new Error(`Program linking failed: ${log}`);
 	}
 
+	// Shaders are baked into the linked program — release the handles
+	gl.deleteShader(vertShader);
+	gl.deleteShader(fragShader);
+
 	return program;
 }
 

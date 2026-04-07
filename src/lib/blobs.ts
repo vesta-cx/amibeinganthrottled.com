@@ -183,8 +183,8 @@ export function tickBlobs(
 
 /**
  * Apply a click impulse to blobs. Behaviour depends on state:
- * - clear: strong repulsion of all blobs EXCEPT the nearest one
- * - throttled/weekend: push all blobs away from click point
+ * - clear: gentle continuous repulsion of all blobs (used while pointer is held)
+ * - throttled/weekend: stronger push of all blobs away from click point
  */
 export function applyClickBurst(
 	blobs: Blob[],
