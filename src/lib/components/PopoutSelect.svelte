@@ -22,6 +22,31 @@
 
 	let open = $state(false);
 	let containerRef: HTMLDivElement | undefined = $state(undefined);
+	let listRef: HTMLDivElement | undefined = $state(undefined);
+
+	// After the list mounts, clamp it to the viewport with an 8px margin.
+	// The list is destroyed on close so styles reset automatically.
+	$effect(() => {
+		if (!open || !listRef) return;
+
+		const rect = listRef.getBoundingClientRect();
+		const margin = 8;
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+
+		// Vertical: nudge via marginTop rather than recomputing top
+		if (rect.top < margin) {
+			listRef.style.marginTop = `${margin - rect.top}px`;
+		} else if (rect.bottom > vh - margin) {
+			listRef.style.marginTop = `-${rect.bottom - (vh - margin)}px`;
+		}
+
+		// Horizontal: if right edge clips, anchor to right instead of left
+		if (rect.right > vw - margin) {
+			listRef.style.left = 'auto';
+			listRef.style.right = '0';
+		}
+	});
 
 	const selectedIndex = $derived(items.findIndex((i) => i.value === selected));
 	const selectedItem = $derived(items[selectedIndex] ?? items[0]);
@@ -75,8 +100,10 @@
 	{#if open}
 		<div
 			class="popout-list"
+			bind:this={listRef}
 			style="--offset: -{selectedIndex * 2.25}rem"
 			role="listbox"
+			tabindex="0"
 			aria-activedescendant="popout-item-{selected}"
 		>
 			{#each items as item (item.value)}
