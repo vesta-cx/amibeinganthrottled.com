@@ -21,6 +21,7 @@
 	import copyData from '$lib/copy/2026-04-06.json';
 
 	import '@fontsource-variable/nunito';
+	import '@fontsource-variable/fraunces';
 	import '@fontsource/space-mono/400.css';
 	import '@fontsource/space-mono/700.css';
 
