@@ -43,7 +43,6 @@
 	}
 
 	// ── Locale ──
-	// getLocale() is not reactive — derive from URL path which Paraglide controls
 	const locale = $derived.by(() => {
 		const pathLocale = page.url.pathname.split('/')[1];
 		const validLocales = ['en', 'nl', 'de', 'fr', 'es', 'it'];
@@ -51,6 +50,8 @@
 	});
 
 	function handleLocaleSelect(loc: string) {
+		// Sync paraglide's cookie so getLocale() stays correct
+		document.cookie = `PARAGLIDE_LOCALE=${loc};path=/;max-age=${60 * 60 * 24 * 400};SameSite=Lax`;
 		const href = localizeHref('/', { locale: loc as 'en' });
 		goto(href, { noScroll: true });
 	}
@@ -71,12 +72,25 @@
 	const result: import('$lib/throttle').ThrottleResult = $derived(getThrottleResult(stateOverride, now));
 	const throttleState: ThrottleState = $derived(result.state);
 
+	// Eagerly compute initial state so colors/blends don't flash from 'clear'
+	const initialStateOverride = dev ? (page.url.searchParams.get('state') as ThrottleState | null) : null;
+	const initialState: ThrottleState = getThrottleResult(initialStateOverride, new Date()).state;
+
 	// ── Pointer state ──
+	// mouseX/mouseY are the smoothed values passed to shaders/blobs.
+	// targetMouseX/Y track the raw pointer; mouseX/Y lerps toward them each frame.
 	let mouseX = $state(0.5);
 	let mouseY = $state(0.5);
-	let clickX = $state(0.5);
-	let clickY = $state(0.5);
-	let clickTime = $state(-10.0);
+	let targetMouseX = 0.5;
+	let targetMouseY = 0.5;
+	const MOUSE_LERP = 0.12; // smoothing factor per frame
+
+	let pointerDown = $state(false);
+	let pointerDownX = $state(0.5);
+	let pointerDownY = $state(0.5);
+
+	// Ring buffer of click events for shader effects (throttled hotspots, weekend ripples)
+	const clicks: import('$lib/types').ClickEvent[] = [];
 
 	// ── Blobs ──
 	const blobs: Blob[] = createBlobs();
@@ -96,10 +110,10 @@
 	const TRANSITION_MS = 1000;
 
 	// Accent color (state-dependent)
-	let accentFrom: RGB = $state(getStatePalette('clear', initialTheme).primary);
-	let accentTo: RGB = $state(getStatePalette('clear', initialTheme).primary);
+	let accentFrom: RGB = $state(getStatePalette(initialState, initialTheme).primary);
+	let accentTo: RGB = $state(getStatePalette(initialState, initialTheme).primary);
 	let accentT0 = $state(0);
-	let accentCurrent: RGB = $state(getStatePalette('clear', initialTheme).primary);
+	let accentCurrent: RGB = $state(getStatePalette(initialState, initialTheme).primary);
 
 	// BG + subtext (theme-dependent)
 	let bgFrom: RGB = $state(getThemePalette(initialTheme).bg);
@@ -136,13 +150,15 @@
 	const TARGET_BLEND: Record<ThrottleState, number> = { clear: 0, throttled: 1, weekend: 0 };
 	const TARGET_WEEKEND: Record<ThrottleState, number> = { clear: 0, throttled: 0, weekend: 1 };
 
-	let blend = $state(0);
-	let weekendBlend = $state(0);
-	let blendFrom = $state(0);
-	let blendTo = $state(0);
+	const initialBlend = TARGET_BLEND[initialState];
+	const initialWeekend = TARGET_WEEKEND[initialState];
+	let blend = $state(initialBlend);
+	let weekendBlend = $state(initialWeekend);
+	let blendFrom = $state(initialBlend);
+	let blendTo = $state(initialBlend);
 	let blendT0 = $state(0);
-	let wFrom = $state(0);
-	let wTo = $state(0);
+	let wFrom = $state(initialWeekend);
+	let wTo = $state(initialWeekend);
 	let wT0 = $state(0);
 
 	$effect(() => {
@@ -162,16 +178,35 @@
 
 	// ── Event handlers ──
 	function onPointerMove(e: PointerEvent) {
-		mouseX = e.clientX / window.innerWidth;
-		mouseY = e.clientY / window.innerHeight;
+		targetMouseX = e.clientX / window.innerWidth;
+		targetMouseY = e.clientY / window.innerHeight;
+		if (pointerDown) {
+			pointerDownX = targetMouseX;
+			pointerDownY = targetMouseY;
+		}
+	}
+
+	function addClickEvent(x: number, y: number) {
+		clicks.push({ x, y, birth: performance.now() / 1000 });
+		// Evict expired or overflow entries
+		const now = performance.now() / 1000;
+		while (clicks.length > 0 && now - clicks[0].birth > 5) clicks.shift();
+		if (clicks.length > 8) clicks.shift();
 	}
 
 	function onPointerDown(e: PointerEvent) {
 		if ((e.target as HTMLElement).closest('.dev-bar, [data-debug]')) return;
-		clickX = e.clientX / window.innerWidth;
-		clickY = e.clientY / window.innerHeight;
-		clickTime = performance.now() / 1000;
-		applyClickBurst(blobs, clickX, clickY);
+		const nx = e.clientX / window.innerWidth;
+		const ny = e.clientY / window.innerHeight;
+		pointerDown = true;
+		pointerDownX = nx;
+		pointerDownY = ny;
+		applyClickBurst(blobs, nx, ny, throttleState);
+		addClickEvent(nx, ny);
+	}
+
+	function onPointerUp() {
+		pointerDown = false;
 	}
 
 	// ── CSS color strings for DOM ──
@@ -210,8 +245,17 @@
 			weekendBlend = wFrom + (wTo - wFrom) * easeCubicInOut(wp);
 			if (wp >= 1.0) weekendBlend = wTo;
 
+			// Smooth pointer toward target
+			mouseX += (targetMouseX - mouseX) * MOUSE_LERP;
+			mouseY += (targetMouseY - mouseY) * MOUSE_LERP;
+
 			// Tick blob physics
 			tickBlobs(blobs, mouseX, mouseY, 0.016, throttleState);
+
+			// Continuous repulsion while pointer is held
+			if (pointerDown) {
+				applyClickBurst(blobs, pointerDownX, pointerDownY, throttleState);
+			}
 
 			// Build FrameState
 			const frameState: FrameState = {
@@ -219,9 +263,10 @@
 				blobs,
 				mouseX,
 				mouseY,
-				clickX,
-				clickY,
-				clickTime,
+				pointerDown,
+				pointerDownX,
+				pointerDownY,
+				clicks,
 				blend,
 				weekendBlend,
 				fgColor: accentCurrent,
@@ -253,16 +298,18 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="relative flex items-center justify-center min-h-dvh w-full overflow-x-hidden"
+	class="relative flex items-center justify-center h-dvh w-full overflow-hidden animate-fade-in"
 	style="background: {bgColorStr};"
 	onpointermove={onPointerMove}
 	onpointerdown={onPointerDown}
+	onpointerup={onPointerUp}
+	onpointerleave={onPointerUp}
 >
 	<DitherBackground bind:this={bgRef} />
 
 	<div
 		class="relative z-10"
-		style="width: min(100vw - 2rem, 80rem); height: min(100dvh - 2rem, 45rem);"
+		style="width: min(100vw - 8rem, 80rem); height: min(100dvh - 8rem, 45rem);"
 		bind:clientHeight={cardHeight}
 	>
 		<GlassCard bind:this={cardRef} {frostHeight} />
@@ -286,3 +333,13 @@
 		<DevBar />
 	{/if}
 </div>
+
+<style>
+	@keyframes fade-in {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+	.animate-fade-in {
+		animation: fade-in 0.8s ease-out;
+	}
+</style>

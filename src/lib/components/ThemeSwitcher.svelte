@@ -5,7 +5,7 @@
 
 	const themes = [
 		//                                        accent (dot)   bg             text
-		{ value: 'auto',             label: 'Auto',            accent: '', bg: 'linear-gradient(135deg, #191918 50%, #faf7f0 50%)', text: '#e8e2d9', icon: '⚙' },
+		{ value: 'auto',             label: 'Auto',            accent: '#D97757', bg: 'linear-gradient(135deg, #191918 50%, #faf7f0 50%)', text: '#e8e2d9' },
 		{ value: 'anthropic-dark',   label: 'Anthropic Dark',  accent: '#D97757', bg: '#191918', text: '#e8e2d9' },
 		{ value: 'anthropic-light',  label: 'Anthropic Light', accent: '#D97757', bg: '#faf7f0', text: '#2e2a25' },
 		{ value: 'mocha',            label: 'Mocha',           accent: '#cba6f7', bg: '#1e1e2e', text: '#cdd6f4' },
