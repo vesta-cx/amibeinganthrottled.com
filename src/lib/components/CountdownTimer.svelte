@@ -24,7 +24,7 @@
 	<p class="text-xs font-semibold tracking-wide mb-1.5 leading-none" style="color:{subtextColor}">
 		{eyebrowLabels[state]}
 	</p>
-	<p class="font-['Fraunces',serif] text-[clamp(20px,2.8vw,28px)] leading-tight m-0"
+	<p class="font-['Fraunces',serif] text-[clamp(20px,2.8vw,28px)] leading-tight m-0 sm:whitespace-nowrap"
 		style="font-variation-settings:'WONK' 1,'SOFT' 0,'wght' 700"
 	>
 		{#each parts as part, i (part.word)}
