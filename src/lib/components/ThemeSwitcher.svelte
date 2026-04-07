@@ -8,8 +8,8 @@
 		{ value: 'macchiato', label: 'Macchiato', swatch: '#24273a' },
 		{ value: 'frappe', label: 'Frappé', swatch: '#303446' },
 		{ value: 'latte', label: 'Latte', swatch: '#eff1f5' },
-		{ value: 'anthropic-dark', label: 'Anthropic Dark', swatch: '#191918' },
-		{ value: 'anthropic-light', label: 'Anthropic Light', swatch: '#faf9f5' },
+		{ value: 'anthropic-dark', label: 'Anthropic Dark', swatch: '#D97757' },
+		{ value: 'anthropic-light', label: 'Anthropic Light', swatch: '#D97757' },
 		{ value: 'solarized-dark', label: 'Solarized Dark', swatch: '#002b36' },
 		{ value: 'solarized-light', label: 'Solarized Light', swatch: '#fdf6e3' },
 	] as const;
