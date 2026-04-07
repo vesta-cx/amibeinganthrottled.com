@@ -7,6 +7,8 @@ export type Blob = {
 	vx: number;
 	vy: number;
 	r: number;
+	baseR: number; // original radius for pulsing
+	phase: number; // phase offset for radius pulsing
 };
 
 export const NUM_BLOBS = BLOBS.count;
@@ -27,15 +29,20 @@ export function createBlobs(): Blob[] {
 		const y = isFree ? Math.random() : 0.15 + Math.random() * 0.7;
 		const angle = Math.random() * Math.PI * 2;
 		const speed = isFree ? 0.0002 : Math.random() * 0.0003;
+		const r = 0.03 + Math.random() * 0.09;
 		return {
 			x,
 			y,
 			vx: Math.cos(angle) * speed,
 			vy: Math.sin(angle) * speed,
-			r: 0.03 + Math.random() * 0.09,
+			r,
+			baseR: r,
+			phase: Math.random() * Math.PI * 2,
 		};
 	});
 }
+
+let tickCount = 0;
 
 /**
  * Advance blob physics by one tick.
@@ -57,6 +64,7 @@ export function tickBlobs(
 	_dt: number,
 	state: ThrottleState,
 ): void {
+	tickCount++;
 	const speedFactor = state === 'throttled' ? 1.0 : state === 'weekend' ? 0.4 : 1.0;
 
 	// Use viewport center as the attractor for center blobs.
@@ -110,6 +118,43 @@ export function tickBlobs(
 			}
 		}
 
+		// Blob-to-blob interaction — oscillates between attract and repel per pair
+		// Each pair has its own phase offset and period, creating organic merge/split
+		for (let j = i + 1; j < blobs.length; j++) {
+			const q = blobs[j];
+			const adx = q.x - p.x;
+			const ady = q.y - p.y;
+			const adist = Math.sqrt(adx * adx + ady * ady) + 0.001;
+
+			// Unique oscillation per pair — period 4-10 seconds (240-600 ticks at 60fps)
+			const pairSeed = (i * 31 + j * 17) & 0xffff;
+			const period = 240 + (pairSeed % 360);
+			const pairPhase = (pairSeed * 0.618) % (Math.PI * 2);
+			const oscillation = Math.sin(tickCount / period * Math.PI * 2 + pairPhase);
+
+			// Positive = attract, negative = repel; strength falls off with distance
+			const strength = 0.0000002 * oscillation * Math.exp(-adist * 5.0);
+			const fx = (adx / adist) * strength;
+			const fy = (ady / adist) * strength;
+			p.vx += fx;
+			p.vy += fy;
+			q.vx -= fx;
+			q.vy -= fy;
+
+			// Soft repulsion when close (linear pushback, no sharp spikes)
+			const overlap = (p.r + q.r) * 0.5 - adist;
+			if (overlap > 0) {
+				const push = overlap * 0.0004;
+				p.vx -= (adx / adist) * push;
+				p.vy -= (ady / adist) * push;
+				q.vx += (adx / adist) * push;
+				q.vy += (ady / adist) * push;
+			}
+		}
+
+		// Radius pulsing — slow breathing
+		p.r = p.baseR * (1.0 + 0.15 * Math.sin(tickCount * 0.003 + p.phase));
+
 		// Random jitter
 		p.vx += (Math.random() - 0.5) * 0.00001;
 		p.vy += (Math.random() - 0.5) * 0.00001;
@@ -124,15 +169,14 @@ export function tickBlobs(
 			p.vy += (dy / dist) * repel;
 		}
 
-		// Damping for non-free blobs
-		if (i < ORBITER_END) {
-			p.vx *= 0.997;
-			p.vy *= 0.997;
-		}
+		// Damping — all blobs get friction so click impulses decay gradually
+		const damp = i < ORBITER_END ? 0.994 : 0.988;
+		p.vx *= damp;
+		p.vy *= damp;
 
-		// Velocity clamping
+		// Soft velocity clamping
 		const v = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-		const maxV = i < ORBITER_END ? 0.00025 : 0.0004;
+		const maxV = 0.002;
 		if (v > maxV) {
 			p.vx *= maxV / v;
 			p.vy *= maxV / v;
@@ -141,16 +185,35 @@ export function tickBlobs(
 }
 
 /**
- * Apply an impulse pushing all blobs away from a click point.
- * Force uses exponential falloff so nearby blobs are affected most.
+ * Apply a click impulse to blobs. Behaviour depends on state:
+ * - clear: strong repulsion of all blobs EXCEPT the nearest one
+ * - throttled/weekend: push all blobs away from click point
  */
-export function applyClickBurst(blobs: Blob[], clickX: number, clickY: number): void {
-	for (const p of blobs) {
-		const dx = p.x - clickX;
-		const dy = p.y - clickY;
-		const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
-		const force = 0.003 * Math.exp(-dist * 8.0);
-		p.vx += (dx / dist) * force;
-		p.vy += (dy / dist) * force;
+export function applyClickBurst(
+	blobs: Blob[],
+	clickX: number,
+	clickY: number,
+	state: ThrottleState = 'clear',
+): void {
+	if (state === 'clear') {
+		// Gentle repulsion of all blobs (runs continuously while held)
+		for (const p of blobs) {
+			const dx = p.x - clickX;
+			const dy = p.y - clickY;
+			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
+			const force = 0.00075 * Math.exp(-dist * 6.0);
+			p.vx += (dx / dist) * force;
+			p.vy += (dy / dist) * force;
+		}
+	} else {
+		// Throttled/weekend: uniform push
+		for (const p of blobs) {
+			const dx = p.x - clickX;
+			const dy = p.y - clickY;
+			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
+			const force = 0.003 * Math.exp(-dist * 8.0);
+			p.vx += (dx / dist) * force;
+			p.vy += (dy / dist) * force;
+		}
 	}
 }
