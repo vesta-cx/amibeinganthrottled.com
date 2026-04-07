@@ -35,13 +35,12 @@
 	// ── Theme ──
 	let theme: Theme = $state(
 		typeof document !== 'undefined'
-			? ((document.documentElement.getAttribute('data-theme') as Theme) ?? 'dark')
-			: 'dark',
+			? ((document.documentElement.getAttribute('data-theme') as Theme) ?? 'mocha')
+			: 'mocha',
 	);
 
-	function toggleTheme() {
-		theme = theme === 'dark' ? 'light' : 'dark';
-		document.documentElement.setAttribute('data-theme', theme);
+	function handleThemeSelect(t: string) {
+		theme = t as Theme;
 	}
 
 	// ── Locale ──
@@ -92,19 +91,19 @@
 	const TRANSITION_MS = 1000;
 
 	// Accent color (state-dependent)
-	let accentFrom: RGB = $state(getStatePalette('clear', 'dark').primary);
-	let accentTo: RGB = $state(getStatePalette('clear', 'dark').primary);
+	let accentFrom: RGB = $state(getStatePalette('clear', 'mocha').primary);
+	let accentTo: RGB = $state(getStatePalette('clear', 'mocha').primary);
 	let accentT0 = $state(0);
-	let accentCurrent: RGB = $state(getStatePalette('clear', 'dark').primary);
+	let accentCurrent: RGB = $state(getStatePalette('clear', 'mocha').primary);
 
 	// BG + subtext (theme-dependent)
-	let bgFrom: RGB = $state(getThemePalette('dark').bg);
-	let bgTo: RGB = $state(getThemePalette('dark').bg);
-	let subtextFrom: RGB = $state(getThemePalette('dark').subtext);
-	let subtextTo: RGB = $state(getThemePalette('dark').subtext);
+	let bgFrom: RGB = $state(getThemePalette('mocha').bg);
+	let bgTo: RGB = $state(getThemePalette('mocha').bg);
+	let subtextFrom: RGB = $state(getThemePalette('mocha').subtext);
+	let subtextTo: RGB = $state(getThemePalette('mocha').subtext);
 	let themeT0 = $state(0);
-	let bgCurrent: RGB = $state(getThemePalette('dark').bg);
-	let subtextCurrent: RGB = $state(getThemePalette('dark').subtext);
+	let bgCurrent: RGB = $state(getThemePalette('mocha').bg);
+	let subtextCurrent: RGB = $state(getThemePalette('mocha').subtext);
 
 	// Track state+theme changes for accent
 	$effect(() => {
@@ -249,7 +248,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="relative min-h-dvh w-full overflow-x-hidden"
+	class="relative flex items-center justify-center min-h-dvh w-full overflow-x-hidden"
 	style="background: {bgColorStr};"
 	onpointermove={onPointerMove}
 	onpointerdown={onPointerDown}
@@ -257,8 +256,8 @@
 	<DitherBackground bind:this={bgRef} />
 
 	<div
-		class="relative z-10 mx-auto mt-4"
-		style="width: min(100vw - 2rem, 80rem); height: max(fit-content, min(100vh - 1rem, 45rem));"
+		class="relative z-10"
+		style="width: min(100vw - 2rem, 80rem); height: min(100dvh - 2rem, 45rem);"
 		bind:clientHeight={cardHeight}
 	>
 		<GlassCard bind:this={cardRef} {frostHeight} />
@@ -272,7 +271,7 @@
 				copyData={copyData as unknown as Record<string, Record<string, string[]>>}
 				{accentColor}
 				{subtextColor}
-				onThemeToggle={toggleTheme}
+				onThemeSelect={handleThemeSelect}
 				onLocaleSelect={handleLocaleSelect}
 			/>
 		</div>

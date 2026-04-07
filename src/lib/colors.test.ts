@@ -56,7 +56,7 @@ describe('easeCubicInOut', () => {
 
 describe('getThemePalette', () => {
 	it('returns valid RGB values for dark theme', () => {
-		const palette = getThemePalette('dark');
+		const palette = getThemePalette('mocha');
 		for (const key of ['bg', 'text', 'subtext'] as const) {
 			const [r, g, b] = palette[key];
 			expect(r).toBeGreaterThanOrEqual(0);
@@ -69,7 +69,7 @@ describe('getThemePalette', () => {
 	});
 
 	it('returns valid RGB values for light theme', () => {
-		const palette = getThemePalette('light');
+		const palette = getThemePalette('latte');
 		for (const key of ['bg', 'text', 'subtext'] as const) {
 			const [r, g, b] = palette[key];
 			expect(r).toBeGreaterThanOrEqual(0);
@@ -82,8 +82,8 @@ describe('getThemePalette', () => {
 	});
 
 	it('dark and light palettes differ', () => {
-		const dark = getThemePalette('dark');
-		const light = getThemePalette('light');
+		const dark = getThemePalette('mocha');
+		const light = getThemePalette('latte');
 		expect(dark.bg).not.toEqual(light.bg);
 		expect(dark.text).not.toEqual(light.text);
 		expect(dark.subtext).not.toEqual(light.subtext);
@@ -92,26 +92,26 @@ describe('getThemePalette', () => {
 
 describe('getStatePalette', () => {
 	it('returns correct dark accent for throttled', () => {
-		expect(getStatePalette('throttled', 'dark').primary).toEqual([243, 139, 168]);
+		expect(getStatePalette('throttled', 'mocha').primary).toEqual([243, 139, 168]);
 	});
 
 	it('returns correct dark accent for clear', () => {
-		expect(getStatePalette('clear', 'dark').primary).toEqual([166, 227, 161]);
+		expect(getStatePalette('clear', 'mocha').primary).toEqual([166, 227, 161]);
 	});
 
 	it('returns correct dark accent for weekend', () => {
-		expect(getStatePalette('weekend', 'dark').primary).toEqual([203, 166, 247]);
+		expect(getStatePalette('weekend', 'mocha').primary).toEqual([203, 166, 247]);
 	});
 
 	it('returns correct light accent for throttled', () => {
-		expect(getStatePalette('throttled', 'light').primary).toEqual([210, 15, 57]);
+		expect(getStatePalette('throttled', 'latte').primary).toEqual([210, 15, 57]);
 	});
 
 	it('returns correct light accent for clear', () => {
-		expect(getStatePalette('clear', 'light').primary).toEqual([64, 160, 43]);
+		expect(getStatePalette('clear', 'latte').primary).toEqual([64, 160, 43]);
 	});
 
 	it('returns correct light accent for weekend', () => {
-		expect(getStatePalette('weekend', 'light').primary).toEqual([136, 57, 239]);
+		expect(getStatePalette('weekend', 'latte').primary).toEqual([136, 57, 239]);
 	});
 });

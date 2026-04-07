@@ -1,21 +1,25 @@
 <script lang="ts">
+	import PopoutSelect from './PopoutSelect.svelte';
+	import 'flag-icons/css/flag-icons.min.css';
+
 	let { locale, onSelect }: { locale: string; onSelect: (locale: string) => void } = $props();
 
-	const locales = ['en', 'nl', 'de', 'fr', 'es', 'it'] as const;
-	const labels: Record<string, string> = { en: 'EN', nl: 'NL', de: 'DE', fr: 'FR', es: 'ES', it: 'IT' };
+	const locales = [
+		{ value: 'en', label: 'English', flag: 'gb' },
+		{ value: 'nl', label: 'Nederlands', flag: 'nl' },
+		{ value: 'de', label: 'Deutsch', flag: 'de' },
+		{ value: 'fr', label: 'Français', flag: 'fr' },
+		{ value: 'es', label: 'Español', flag: 'es' },
+		{ value: 'it', label: 'Italiano', flag: 'it' },
+	] as const;
+
+	const items = $derived(
+		locales.map((l) => ({
+			value: l.value,
+			label: l.label,
+			icon: `<span class="fi fi-${l.flag}" style="font-size:1rem;line-height:1"></span>`,
+		}))
+	);
 </script>
 
-<div class="flex gap-1">
-	{#each locales as loc (loc)}
-		<button
-			onclick={() => onSelect(loc)}
-			class="px-1.5 py-0.5 text-xs rounded transition-opacity {loc === locale
-				? 'opacity-100 font-bold'
-				: 'opacity-50 hover:opacity-100'}"
-			aria-label="Switch to {labels[loc]}"
-			aria-current={loc === locale ? 'true' : undefined}
-		>
-			{labels[loc]}
-		</button>
-	{/each}
-</div>
+<PopoutSelect {items} selected={locale} onSelect={(v) => onSelect(v)} />

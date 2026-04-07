@@ -5,7 +5,7 @@
 		<script>
 			(function() {
 				var m = document.cookie.match(/(?:^|; )THEME=([^;]*)/);
-				var t = m ? m[1] : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+				var t = m ? m[1] : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'latte' : 'mocha');
 				document.documentElement.setAttribute('data-theme', t);
 			})();
 		</script>

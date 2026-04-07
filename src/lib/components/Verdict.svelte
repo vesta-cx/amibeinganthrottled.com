@@ -6,10 +6,11 @@
 	interface Props {
 		state: ThrottleState;
 		accentColor: string;
+		subtextColor: string;
 		phase?: TypewriterPhase;
 	}
 
-	let { state, accentColor, phase = $bindable('idle') }: Props = $props();
+	let { state: throttleState, accentColor, subtextColor, phase = $bindable('idle') }: Props = $props();
 
 	const verdicts: Record<ThrottleState, [string, string, string]> = {
 		throttled: ['Sadly, ', 'yes', '.'],
@@ -20,17 +21,17 @@
 	const tw = createTypewriter();
 
 	const target = $derived(
-		verdicts[state][0] + verdicts[state][1] + verdicts[state][2]
+		verdicts[throttleState][0] + verdicts[throttleState][1] + verdicts[throttleState][2]
 	);
 
 	$effect(() => {
 		tw.setTarget(target);
 	});
 
-	// Tick the typewriter with requestAnimationFrame
-	$effect(() => {
-		if (tw.phase === 'idle') return;
+	// Tick the typewriter and sync phase + text to reactive state
+	let text = $state('');
 
+	$effect(() => {
 		let last: number | undefined;
 		let frame: number;
 
@@ -39,33 +40,29 @@
 				tw.tick(now - last);
 			}
 			last = now;
+			text = tw.text;
+			phase = tw.phase;
 			frame = requestAnimationFrame(loop);
 		}
 
 		frame = requestAnimationFrame(loop);
-
 		return () => cancelAnimationFrame(frame);
 	});
 
 	// Split displayed text to color the accent portion
 	const parts = $derived.by(() => {
-		const v = verdicts[state];
-		const text = tw.text;
+		const v = verdicts[throttleState];
+		const t = text;
 		const beforeLen = v[0].length;
 		const accentLen = v[1].length;
-		const before = text.slice(0, Math.min(text.length, beforeLen));
-		const accent = text.length > beforeLen
-			? text.slice(beforeLen, Math.min(text.length, beforeLen + accentLen))
+		const before = t.slice(0, Math.min(t.length, beforeLen));
+		const accent = t.length > beforeLen
+			? t.slice(beforeLen, Math.min(t.length, beforeLen + accentLen))
 			: '';
-		const after = text.length > beforeLen + accentLen
-			? text.slice(beforeLen + accentLen)
+		const after = t.length > beforeLen + accentLen
+			? t.slice(beforeLen + accentLen)
 			: '';
 		return { before, accent, after };
-	});
-
-	// Sync phase outward so parent can read it via bind:phase
-	$effect(() => {
-		phase = tw.phase;
 	});
 
 	export function startDeleting() {
@@ -78,8 +75,8 @@
 </script>
 
 <div class="verdict-group">
-	<p class="question">Am I Being Anthrottled?</p>
-	<h1 class="verdict">{parts.before}<span style="color: {accentColor}">{parts.accent}</span>{parts.after}</h1>
+	<p class="question" style="color: {subtextColor}">Am I Being Anthrottled?</p>
+	<h1 class="verdict" style="color: {subtextColor}">{parts.before}<span style="color: {accentColor}">{parts.accent}</span>{parts.after}</h1>
 </div>
 
 <style>

@@ -9,13 +9,13 @@
 
 	interface Props {
 		state: ThrottleState;
-		theme: 'dark' | 'light';
+		theme: string;
 		locale: string;
 		msUntilTransition: number;
 		copyData: Record<string, Record<string, string[]>>;
 		accentColor: string;
 		subtextColor: string;
-		onThemeToggle: () => void;
+		onThemeSelect: (theme: string) => void;
 		onLocaleSelect: (locale: string) => void;
 	}
 
@@ -27,7 +27,7 @@
 		copyData,
 		accentColor,
 		subtextColor,
-		onThemeToggle,
+		onThemeSelect,
 		onLocaleSelect,
 	}: Props = $props();
 
@@ -43,12 +43,12 @@
 </script>
 
 <div
-	class="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 px-4 py-3"
-	style="border-top: 1px solid rgba(255,255,255,0.06)"
+	class="flex flex-col gap-3 sm:grid sm:grid-cols-2 sm:gap-4 px-6 py-4"
+	style="color: {subtextColor}; border-top: 1px solid rgba(255,255,255,0.06)"
 >
 	<!-- Mobile: Verdict first, Desktop: left column top -->
 	<div class="order-1 sm:order-1 sm:col-start-1 sm:row-start-1">
-		<Verdict state={throttleState} {accentColor} bind:phase={verdictPhase} />
+		<Verdict state={throttleState} {accentColor} {subtextColor} bind:phase={verdictPhase} />
 	</div>
 
 	<!-- Mobile: CountdownTimer second, Desktop: right column bottom -->
@@ -57,13 +57,13 @@
 	</div>
 
 	<!-- Mobile: CopyText third, Desktop: left column bottom -->
-	<div class="order-3 sm:order-2 sm:col-start-1 sm:row-start-2" style="color: {subtextColor}">
+	<div class="order-3 sm:order-2 sm:col-start-1 sm:row-start-2">
 		<CopyText bind:this={copyTextRef} state={throttleState} {locale} {copyData} />
 	</div>
 
 	<!-- Mobile: Controls last, Desktop: right column top -->
 	<div class="order-4 sm:order-3 sm:col-start-2 sm:row-start-1 flex items-center gap-2 sm:justify-end">
 		<LocaleSwitcher {locale} onSelect={onLocaleSelect} />
-		<ThemeSwitcher {theme} onToggle={onThemeToggle} />
+		<ThemeSwitcher {theme} onSelect={onThemeSelect} />
 	</div>
 </div>

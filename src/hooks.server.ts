@@ -4,7 +4,7 @@ import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 
 const handleTheme: Handle = async ({ event, resolve }) => {
-	const theme = event.cookies.get('THEME') ?? 'dark';
+	const theme = event.cookies.get('THEME') ?? 'mocha';
 	event.locals.theme = theme;
 	return resolve(event);
 };

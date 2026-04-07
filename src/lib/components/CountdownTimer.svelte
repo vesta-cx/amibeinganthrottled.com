@@ -27,10 +27,6 @@
 	<p class="font-['Fraunces',serif] text-[clamp(20px,2.8vw,28px)] leading-tight m-0 sm:whitespace-nowrap"
 		style="font-variation-settings:'WONK' 1,'SOFT' 0,'wght' 700"
 	>
-		{#each parts as part, i (part.word)}
-			{#if i > 0}
-				<span style="color:{subtextColor}"> and </span>
-			{/if}<span class="inline-block whitespace-nowrap"><span class="font-bold" style="color:{accentColor}">{part.n}</span> <span style="color:{subtextColor}">{part.word}</span></span>
-		{/each}
+		{#each parts as part, i (part.word)}{#if i > 0}{' '}<span style="color:{subtextColor}">and</span>{' '}{/if}<span class="inline-block whitespace-nowrap"><span class="font-bold" style="color:{accentColor}">{part.n}</span>{' '}<span style="color:{subtextColor}">{part.word}</span></span>{/each}
 	</p>
 </div>

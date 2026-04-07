@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createTypewriter, type TypewriterPhase } from '$lib/typewriter';
+	import { untrack } from 'svelte';
 	import type { ThrottleState } from '$lib/throttle';
 
 	interface Props {
@@ -15,47 +16,33 @@
 
 	const typewriter = createTypewriter();
 
-	let currentIndex = $state(0);
-
+	let currentIndex = 0;
 	let text = $state('');
 	let phase: TypewriterPhase = $state('idle');
 
-	function getStrings(): string[] {
+	// Derive the string pool — only changes when state or locale actually change
+	const strings = $derived.by(() => {
 		const localeData = copyData[locale] ?? copyData['en'];
-		if (!localeData) return [];
-		return localeData[throttleState] ?? [];
-	}
+		if (!localeData) return [] as string[];
+		return (localeData[throttleState] ?? []) as string[];
+	});
 
-	function pickRandom(): number {
-		const strings = getStrings();
-		if (strings.length === 0) return 0;
-		return Math.floor(Math.random() * strings.length);
-	}
-
-	function applyTarget(index: number): void {
-		const strings = getStrings();
-		if (strings.length === 0) return;
-		currentIndex = index;
-		typewriter.setTarget(strings[index]);
-	}
-
-	// React to state changes: pick a new random string and reset rotation timer
+	// When the string pool changes, pick a new random target and reset rotation
 	$effect(() => {
-		// Access reactive props to register as dependencies
-		void throttleState;
-		void locale;
+		const pool = strings;
+		if (pool.length === 0) return;
 
-		const idx = pickRandom();
-		applyTarget(idx);
+		untrack(() => {
+			currentIndex = Math.floor(Math.random() * pool.length);
+			typewriter.setTarget(pool[currentIndex]);
+		});
 
-		const rotationTimer = setInterval(() => {
-			const strings = getStrings();
-			if (strings.length === 0) return;
-			const nextIdx = (currentIndex + 1) % strings.length;
-			applyTarget(nextIdx);
+		const timer = setInterval(() => {
+			currentIndex = (currentIndex + 1) % pool.length;
+			typewriter.setTarget(pool[currentIndex]);
 		}, ROTATION_INTERVAL_MS);
 
-		return () => clearInterval(rotationTimer);
+		return () => clearInterval(timer);
 	});
 
 	// Tick the typewriter on an interval
@@ -78,4 +65,4 @@
 	}
 </script>
 
-<p class="font-['Fraunces',serif]">{text}</p>
+<p class="font-['Fraunces_Variable',serif] text-[clamp(14px,1.6vw,18px)] leading-snug">{text}</p>
