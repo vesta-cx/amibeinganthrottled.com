@@ -258,7 +258,7 @@
 
 			// Continuous repulsion while pointer is held
 			if (pointerDown) {
-				applyClickBurst(blobs, pointerDownX, pointerDownY, throttleState);
+				applyClickBurst(blobs, pointerDownX, pointerDownY, throttleState, dt);
 			}
 
 			// Build FrameState

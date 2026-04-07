@@ -115,6 +115,7 @@
 		const viewport = getViewportSize();
 		const pageW = viewport.w;
 		const pageH = viewport.h;
+		if (pageW === 0 || pageH === 0) return; // minimized / not laid out
 		const aspect = pageW / pageH;
 
 		const bgRGB: [number, number, number] = [

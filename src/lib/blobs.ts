@@ -197,14 +197,20 @@ export function applyClickBurst(
 	clickX: number,
 	clickY: number,
 	state: ThrottleState = 'clear',
+	dt = 1 / 60,
 ): void {
+	// Normalize to 60 fps. One-time impulse callers pass no dt (default 1/60
+	// → scale=1, no change). Per-frame callers pass real dt so force is
+	// halved at 120 Hz, preserving the same net repulsion per second.
+	const scale = dt * 60;
+
 	if (state === 'clear') {
 		// Gentle repulsion of all blobs (runs continuously while held)
 		for (const p of blobs) {
 			const dx = p.x - clickX;
 			const dy = p.y - clickY;
 			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
-			const force = 0.00075 * Math.exp(-dist * 6.0);
+			const force = 0.00075 * Math.exp(-dist * 6.0) * scale;
 			p.vx += (dx / dist) * force;
 			p.vy += (dy / dist) * force;
 		}
@@ -214,7 +220,7 @@ export function applyClickBurst(
 			const dx = p.x - clickX;
 			const dy = p.y - clickY;
 			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
-			const force = 0.003 * Math.exp(-dist * 8.0);
+			const force = 0.003 * Math.exp(-dist * 8.0) * scale;
 			p.vx += (dx / dist) * force;
 			p.vy += (dy / dist) * force;
 		}
