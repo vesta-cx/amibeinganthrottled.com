@@ -327,7 +327,7 @@ void main() {
     blurred += n * (1.0 / 40.0); // ~6 levels of noise
 
     // Gamma-boost so more values cross the 0.5 overlay threshold
-    blurred = pow(max(blurred, vec3(0.0)), vec3(0.35));
+    blurred = pow(max(blurred, vec3(0.0)), vec3(0.425));
 
     // Soft overlay with chroma boost
     vec3 mul = 2.0 * tinted * blurred;
