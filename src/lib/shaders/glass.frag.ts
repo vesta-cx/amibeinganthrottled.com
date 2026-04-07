@@ -324,7 +324,7 @@ void main() {
 
     // Noise dithering: break color banding with per-pixel value noise
     float n = hash(gl_FragCoord.xy) - 0.5; // [-0.5, 0.5]
-    blurred += n * (1.0 / 64.0); // ~4 levels of noise
+    blurred += n * (1.0 / 40.0); // ~6 levels of noise
 
     // Gamma-boost so more values cross the 0.5 overlay threshold
     blurred = pow(max(blurred, vec3(0.0)), vec3(0.4));
@@ -339,7 +339,7 @@ void main() {
     float ovLum = dot(ov, vec3(0.2126, 0.7152, 0.0722));
     float baseLum = dot(tinted, vec3(0.2126, 0.7152, 0.0722));
     float lift = max(ovLum - baseLum, 0.0); // how much brighter the overlay is
-    vec3 saturatedOv = mix(vec3(ovLum), ov, 1.0 + lift * 3.0); // push saturation proportional to lift
+    vec3 saturatedOv = mix(vec3(ovLum), ov, 1.0 + lift * 4.0); // push saturation proportional to lift
     ov = mix(ov, saturatedOv, smoothstep(0.0, 0.2, lift));
 
     tinted = mix(tinted, ov, edgeAlpha);
