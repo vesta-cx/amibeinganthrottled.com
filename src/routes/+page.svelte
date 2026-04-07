@@ -33,11 +33,9 @@
 	}
 
 	// ── Theme ──
-	let theme: Theme = $state(
-		typeof document !== 'undefined'
-			? ((document.documentElement.getAttribute('data-theme') as Theme) ?? 'mocha')
-			: 'mocha',
-	);
+	// Server passes theme from cookie via layout.server.ts → no flash on hydration
+	const initialTheme = (page.data.theme as Theme) ?? 'mocha';
+	let theme: Theme = $state(initialTheme);
 
 	function handleThemeSelect(t: string) {
 		theme = t as Theme;
@@ -96,19 +94,19 @@
 	const TRANSITION_MS = 1000;
 
 	// Accent color (state-dependent)
-	let accentFrom: RGB = $state(getStatePalette('clear', 'mocha').primary);
-	let accentTo: RGB = $state(getStatePalette('clear', 'mocha').primary);
+	let accentFrom: RGB = $state(getStatePalette('clear', initialTheme).primary);
+	let accentTo: RGB = $state(getStatePalette('clear', initialTheme).primary);
 	let accentT0 = $state(0);
-	let accentCurrent: RGB = $state(getStatePalette('clear', 'mocha').primary);
+	let accentCurrent: RGB = $state(getStatePalette('clear', initialTheme).primary);
 
 	// BG + subtext (theme-dependent)
-	let bgFrom: RGB = $state(getThemePalette('mocha').bg);
-	let bgTo: RGB = $state(getThemePalette('mocha').bg);
-	let subtextFrom: RGB = $state(getThemePalette('mocha').subtext);
-	let subtextTo: RGB = $state(getThemePalette('mocha').subtext);
+	let bgFrom: RGB = $state(getThemePalette(initialTheme).bg);
+	let bgTo: RGB = $state(getThemePalette(initialTheme).bg);
+	let subtextFrom: RGB = $state(getThemePalette(initialTheme).subtext);
+	let subtextTo: RGB = $state(getThemePalette(initialTheme).subtext);
 	let themeT0 = $state(0);
-	let bgCurrent: RGB = $state(getThemePalette('mocha').bg);
-	let subtextCurrent: RGB = $state(getThemePalette('mocha').subtext);
+	let bgCurrent: RGB = $state(getThemePalette(initialTheme).bg);
+	let subtextCurrent: RGB = $state(getThemePalette(initialTheme).subtext);
 
 	// Track state+theme changes for accent
 	$effect(() => {
