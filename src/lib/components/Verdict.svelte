@@ -24,10 +24,18 @@
 		weekend: [m.verdict_weekend_before({}, loc), m.verdict_weekend_accent({}, loc), m.verdict_weekend_after({}, loc)],
 	}));
 
+	// Sentinel characters (Unicode private-use area) mark accent boundaries inside the
+	// typewriter string. They're invisible in the rendered output but travel with the
+	// text as it's typed and deleted, so accent positions are always correct regardless
+	// of which state or locale was active when the animation started.
+	const ACCENT_OPEN  = '\uE001';
+	const ACCENT_CLOSE = '\uE002';
+
 	const tw = createTypewriter();
 
+	// Embed sentinels: "before\uE001accent\uE002after"
 	const target = $derived(
-		verdicts[throttleState][0] + verdicts[throttleState][1] + verdicts[throttleState][2]
+		verdicts[throttleState][0] + ACCENT_OPEN + verdicts[throttleState][1] + ACCENT_CLOSE + verdicts[throttleState][2]
 	);
 
 	$effect(() => {
@@ -55,31 +63,24 @@
 		return () => cancelAnimationFrame(frame);
 	});
 
-	// displayedState tracks which verdict's accent positions apply to the text on screen.
-	// It lags behind throttleState: stays on the old state while the typewriter is deleting,
-	// and advances to throttleState only when typing begins (deletion finished).
-	let displayedState: ThrottleState = $state(throttleState);
-
-	$effect(() => {
-		if (phase === 'typing') {
-			displayedState = throttleState;
-		}
-	});
-
-	// Split displayed text to color the accent portion
+	// Parse sentinels from the live text to find accent boundaries.
+	// No dependency on throttleState/locale — the markers are intrinsic to the string.
+	// When ACCENT_CLOSE is absent (marker being deleted or not yet typed),
+	// everything after ACCENT_OPEN is treated as accent-in-progress.
 	const parts = $derived.by(() => {
-		const v = verdicts[displayedState];
 		const t = text;
-		const beforeLen = v[0].length;
-		const accentLen = v[1].length;
-		const before = t.slice(0, Math.min(t.length, beforeLen));
-		const accent = t.length > beforeLen
-			? t.slice(beforeLen, Math.min(t.length, beforeLen + accentLen))
-			: '';
-		const after = t.length > beforeLen + accentLen
-			? t.slice(beforeLen + accentLen)
-			: '';
-		return { before, accent, after };
+		const openIdx = t.indexOf(ACCENT_OPEN);
+		if (openIdx === -1) return { before: t, accent: '', after: '' };
+		const closeIdx = t.indexOf(ACCENT_CLOSE, openIdx + 1);
+		const before = t.slice(0, openIdx);
+		if (closeIdx === -1) {
+			return { before, accent: t.slice(openIdx + 1), after: '' };
+		}
+		return {
+			before,
+			accent: t.slice(openIdx + 1, closeIdx),
+			after: t.slice(closeIdx + 1),
+		};
 	});
 
 	export function startDeleting() {
