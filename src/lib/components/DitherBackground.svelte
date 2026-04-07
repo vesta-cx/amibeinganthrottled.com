@@ -89,7 +89,7 @@
 	}
 
 	export function render(state: FrameState): void {
-		if (!gl || !canvasEl) return;
+		if (!gl || !canvasEl || !ditherProg || !blurProg || !frostProg || !bayerTex || !quadBuf || !ditherFBO || !blurFBO_A || !blurFBO_B) return;
 
 		const dpr = window.devicePixelRatio || 1;
 		const cw = canvasEl.clientWidth;
