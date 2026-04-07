@@ -22,8 +22,8 @@
 
 	// GL state managed across mount/destroy
 	const CA_STRENGTH = 0.05;
-	const EDGE_BLOOM = 0.5;
-	const EDGE_BLOOM_RADIUS = 80.0;
+	const EDGE_BLOOM = 0.3;
+	const EDGE_BLOOM_RADIUS = 100.0;
 
 	let gl: WebGLRenderingContext | null = null;
 	let ditherProg: WebGLProgram | null = null;
