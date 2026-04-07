@@ -104,7 +104,7 @@ export function tickBlobs(
 			const oscillation = Math.sin(time / periodSec * Math.PI * 2 + pairPhase);
 
 			// Positive = attract, negative = repel; strength falls off with distance
-			const strength = 0.00001 * oscillation * Math.exp(-adist * 5.0) * scale;
+			const strength = 0.0001 * oscillation * Math.exp(-adist * 5.0) * scale;
 			const fx = (adx / adist) * strength;
 			const fy = (ady / adist) * strength;
 			p.vx += fx;
@@ -115,7 +115,7 @@ export function tickBlobs(
 			// Soft repulsion when close (linear pushback, no sharp spikes)
 			const overlap = (p.r + q.r) * 0.5 - adist;
 			if (overlap > 0) {
-				const push = overlap * 0.004 * scale;
+				const push = overlap * 0.0001 * scale;
 				p.vx -= (adx / adist) * push;
 				p.vy -= (ady / adist) * push;
 				q.vx += (adx / adist) * push;
