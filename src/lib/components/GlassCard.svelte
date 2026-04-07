@@ -78,9 +78,9 @@
 		blurFBO_A = createFBO(gl, 2, 2);
 		blurFBO_B = createFBO(gl, 2, 2);
 
-		// Enable blending for glass pass transparency
-		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+		// Clear to transparent so the card isn't white before the first render
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
 	}
 
 	function cleanupGL() {
@@ -113,6 +113,7 @@
 		const dpr = (window.visualViewport?.scale ?? 1) * (window.devicePixelRatio || 1);
 		const w = canvas.clientWidth;
 		const h = canvas.clientHeight;
+		if (w === 0 || h === 0) return; // not laid out yet
 		const pw = Math.round(w * dpr);
 		const ph = Math.round(h * dpr);
 
@@ -154,7 +155,7 @@
 		const fgG = state.fgColor[1] / 255;
 		const fgB = state.fgColor[2] / 255;
 
-		const clickAge = state.clickTime > 0 ? (performance.now() / 1000 - state.clickTime) : 10.0;
+		const nowSec = performance.now() / 1000;
 
 		// Ensure quad buffer is bound
 		gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
@@ -184,8 +185,19 @@
 			u_resolution: [vpW, vpH],
 			u_offset: [0, 0, 1, 1],
 			u_alpha: state.alpha,
-			u_click: [state.clickX, state.clickY, clickAge],
 		});
+
+		// Pass click events as u_clicks[i] uniforms
+		for (let i = 0; i < 8; i++) {
+			const loc = gl.getUniformLocation(ditherProg, `u_clicks[${i}]`);
+			if (!loc) continue;
+			const click = state.clicks[i];
+			if (click) {
+				gl.uniform3f(loc, click.x, click.y, nowSec - click.birth);
+			} else {
+				gl.uniform3f(loc, 0, 0, 10.0);
+			}
+		}
 
 		for (let i = 0; i < NUM_BLOBS; i++) {
 			const loc = gl.getUniformLocation(ditherProg, `u_blobs[${i}]`);
@@ -239,6 +251,8 @@
 		// ── Pass 4: Glass refraction -> screen ──
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(0, 0, pw, ph);
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		gl.useProgram(glassProg);
@@ -258,10 +272,15 @@
 		gl.uniform1i(gl.getUniformLocation(glassProg, 'u_blurredScene'), 4);
 
 		// Compute light direction from mouse position relative to card center
+		// Default to a slight top-right offset so specular isn't uniformly maxed when mouse is dead center
 		const cx = offX + scaleX * 0.5;
 		const cy = offY + scaleY * 0.5;
-		const lx = state.mouseX - cx;
-		const ly = -(state.mouseY - cy); // flip Y for GL
+		let lx = state.mouseX - cx;
+		let ly = -(state.mouseY - cy); // flip Y for GL
+		if (Math.abs(lx) < 0.01 && Math.abs(ly) < 0.01) {
+			lx = 0.15;
+			ly = 0.1;
+		}
 		const len = Math.sqrt(lx * lx + ly * ly) + 0.001;
 		const lightDirX = lx / len;
 		const lightDirY = ly / len;
@@ -302,6 +321,7 @@
 		});
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.disable(gl.BLEND);
 	}
 
 	onMount(() => {
@@ -311,5 +331,5 @@
 </script>
 
 <div class="relative w-full h-full">
-	<canvas bind:this={canvas} class="block w-full h-full"></canvas>
+	<canvas bind:this={canvas} class="block w-full h-full" style="background: transparent;"></canvas>
 </div>
