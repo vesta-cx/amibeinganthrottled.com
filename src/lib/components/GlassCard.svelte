@@ -110,7 +110,7 @@
 	export function render(state: FrameState): void {
 		if (!gl || !ditherProg || !blurProg || !glassProg || !sceneFBO || !blurFBO_A || !blurFBO_B || !bayerTex) return;
 
-		const dpr = (window.visualViewport?.scale ?? 1) * (window.devicePixelRatio || 1);
+		const dpr = window.devicePixelRatio || 1;
 		const w = canvas.clientWidth;
 		const h = canvas.clientHeight;
 		if (w === 0 || h === 0) return; // not laid out yet

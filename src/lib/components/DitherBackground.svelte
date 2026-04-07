@@ -61,10 +61,14 @@
 			gl.STATIC_DRAW,
 		);
 
-		// Bind a_position for the dither program (shared attribute layout)
-		const aPos = gl.getAttribLocation(ditherProg, 'a_position');
-		gl.enableVertexAttribArray(aPos);
-		gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+		// Bind a_position for all programs (shared attribute layout, same buffer stays bound)
+		for (const prog of [ditherProg, blurProg, frostProg]) {
+			const aPos = gl.getAttribLocation(prog, 'a_position');
+			if (aPos >= 0) {
+				gl.enableVertexAttribArray(aPos);
+				gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+			}
+		}
 
 		// Create initial FBOs at 1x1 (will resize on first render)
 		ditherFBO = createFBO(gl, 1, 1);
