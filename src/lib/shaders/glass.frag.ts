@@ -329,25 +329,18 @@ void main() {
     // Gamma-boost so more values cross the 0.5 overlay threshold
     blurred = pow(max(blurred, vec3(0.0)), vec3(0.4));
 
-    // Soft overlay: smooth lerp between multiply and screen paths instead of
-    // hard 0.5 branch. Eliminates the dark seam at the cutoff boundary.
-    vec3 mul = 2.0 * tinted * blurred;                            // multiply path
-    vec3 scr = 1.0 - 2.0 * (1.0 - tinted) * (1.0 - blurred);    // screen path
-    float blend = smoothstep(0.4, 0.6, dot(blurred, vec3(0.333)));// luminance-based soft switch
-    vec3 ov = mix(mul, scr, blend);
+    // Screen blend only — no darkening at the edge, ever.
+    // screen(base, blend) = 1 - (1-base)*(1-blend)
+    vec3 scr = 1.0 - (1.0 - tinted) * (1.0 - blurred);
 
-    // Saturate the brightened areas — boost chroma where overlay lifts
-    float ovLum = dot(ov, vec3(0.2126, 0.7152, 0.0722));
+    // Saturate the brightened areas — boost chroma so it glows colored, not white
+    float scrLum = dot(scr, vec3(0.2126, 0.7152, 0.0722));
     float baseLum = dot(tinted, vec3(0.2126, 0.7152, 0.0722));
-    float lift = max(ovLum - baseLum, 0.0); // how much brighter the overlay is
-    vec3 saturatedOv = mix(vec3(ovLum), ov, 1.0 + lift * 4.0); // push saturation proportional to lift
-    ov = mix(ov, saturatedOv, smoothstep(0.0, 0.2, lift));
+    float lift = max(scrLum - baseLum, 0.0);
+    vec3 saturated = mix(vec3(scrLum), scr, 1.0 + lift * 4.0);
+    scr = mix(scr, saturated, smoothstep(0.0, 0.2, lift));
 
-    // Clamp: overlay can only brighten near the AA edge to prevent dark seam.
-    // Deeper into the card interior, allow full overlay (including darkening).
-    float edgeFade = smoothstep(0.0, -8.0, dist); // 0 at boundary, 1 deeper in
-    ov = mix(max(ov, tinted), ov, edgeFade);       // near edge: only brighten
-    tinted = mix(tinted, ov, edgeAlpha);
+    tinted = mix(tinted, scr, edgeAlpha);
   }
 
   // Output with alpha for AA edge blending (canvas is transparent outside)
