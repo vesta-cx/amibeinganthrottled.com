@@ -21,7 +21,7 @@ uniform vec2  u_resolution;
 uniform vec4  u_offset; // x: offX, y: offY, z: scaleX, w: scaleY
 uniform vec3  u_blobs[${numBlobs}]; // xy = pos, z = radius
 uniform float u_alpha; // global alpha multiplier
-uniform vec3  u_click; // x, y (normalized), z = seconds since click (>5 = inactive)
+uniform vec3  u_clicks[${8}]; // each: x, y (normalized), z = age in seconds (>5 = inactive)
 
 // Bayer 8x8 dither via texture lookup
 uniform sampler2D u_bayerTex;
@@ -75,7 +75,7 @@ float transNoise(vec2 p, float t) {
 float computeField(vec2 nxy, float aspect, float t, float cb, float cw) {
   float nx = nxy.x, ny = nxy.y;
 
-  // Metaballs with organic wobble
+  // Metaballs with slow organic wobble (lava lamp goopiness)
   float meta = 0.0;
   for (int i = 0; i < ${numBlobs}; i++) {
     vec3 b = u_blobs[i];
@@ -83,20 +83,28 @@ float computeField(vec2 nxy, float aspect, float t, float cb, float cw) {
     float dy = ny - b.y;
     float angle = atan(dy, dx);
     float fi = float(i);
-    float wobble = 1.0 + 0.10 * sin(angle * 3.0 + t * 1.1 + fi * 2.1) + 0.06 * sin(angle * 5.0 - t * 0.8 + fi * 1.3);
+    // Slower, lower-frequency wobble for goopier organic shapes
+    float wobble = 1.0
+      + 0.12 * sin(angle * 2.0 + t * 0.5 + fi * 2.1)
+      + 0.08 * sin(angle * 3.0 - t * 0.3 + fi * 1.3)
+      + 0.04 * sin(angle * 5.0 + t * 0.7 + fi * 3.7);
     float d2 = (dx * dx + dy * dy) * wobble;
-    meta += (b.z * b.z) / (d2 + 0.0015);
+    meta += (b.z * b.z) / (d2 + 0.001);
   }
   // Pointer metaball
   {
     float dx = (nx - u_mouse.x) * aspect;
     float dy = ny - u_mouse.y;
     float angle = atan(dy, dx);
-    float wobble = 1.0 + 0.10 * sin(angle * 3.0 + t * 1.1 + 5.7) + 0.06 * sin(angle * 5.0 - t * 0.8 + 3.2);
+    float wobble = 1.0
+      + 0.12 * sin(angle * 2.0 + t * 0.5 + 5.7)
+      + 0.08 * sin(angle * 3.0 - t * 0.3 + 3.2)
+      + 0.04 * sin(angle * 5.0 + t * 0.7 + 1.9);
     float d2 = (dx * dx + dy * dy) * wobble;
-    meta += (0.08 * 0.08) / (d2 + 0.0015);
+    meta += (0.08 * 0.08) / (d2 + 0.001);
   }
-  float metaI = min(meta / 1.5, 1.0);
+  // Lower threshold = wider, goopier merge zones between blobs
+  float metaI = min(meta / 1.2, 1.0);
 
   // Voronoi
   float d1 = 100.0, d2v = 100.0;
@@ -115,62 +123,71 @@ float computeField(vec2 nxy, float aspect, float t, float cb, float cw) {
   }
   float voroI = pow(d1 / (d2v + 0.0001), 6.0);
 
-  // FBM terrain
-  float terrainH = fbm(nx * aspect * 5.0, ny * 5.0, t * 0.6);
+  // FBM terrain (slower animation)
+  float terrainH = fbm(nx * aspect * 5.0, ny * 5.0, t * 0.25);
   float tdx = (nx - u_mouse.x) * aspect;
   float tdy = ny - u_mouse.y;
   float tDist2 = tdx * tdx + tdy * tdy;
   terrainH = min(1.0, terrainH + 0.5 * exp(-tDist2 / (2.0 * 0.14)));
 
-  // Aurora
-  float mdx = (nx - u_mouse.x) * aspect;
-  float mdy = ny - u_mouse.y;
+  // Weekend click displacement — warp aurora UVs before computing aurora
+  vec2 auroraUV = vec2(nx, ny);
+  for (int i = 0; i < ${8}; i++) {
+    float age = u_clicks[i].z;
+    if (age >= 5.0) continue;
+    float cdx = (auroraUV.x - u_clicks[i].x) * aspect;
+    float cdy = auroraUV.y - u_clicks[i].y;
+    float cDist = sqrt(cdx * cdx + cdy * cdy) + 0.001;
+    float easeIn = smoothstep(0.0, 0.15, age);
+    float fade = easeIn * exp(-max(age - 0.15, 0.0) * 1.0);
+    float ringRadius = age * 0.35;
+    float ringDist = cDist - ringRadius;
+    float ringEnv = exp(-ringDist * ringDist / (2.0 * 0.003)) * fade;
+    // Displace radially outward from click center
+    auroraUV += vec2(cdx, cdy) / cDist * ringEnv * 0.18;
+  }
+
+  // Aurora (uses displaced UVs for weekend ripple effect)
+  float anx = auroraUV.x, any2 = auroraUV.y;
+  float mdx = (anx - u_mouse.x) * aspect;
+  float mdy = any2 - u_mouse.y;
   float mDist2 = mdx * mdx + mdy * mdy;
   float mDist = sqrt(mDist2);
   float mWarp = 0.8 / (mDist + 0.25);
   float aurora =
-    sin(ny * 12.0 + t * 0.8 + sin(nx * 6.0 + t * 0.3) * 2.0 + mWarp) * 0.5 +
-    sin(ny * 8.0 - t * 0.5 + cos(nx * 4.0 + t * 0.7) * 1.5 + mWarp * 0.5) * 0.3 +
-    sin((nx + ny) * 10.0 + t * 0.4) * 0.2 +
-    sin(nx * 5.0 + ny * 3.0 + t * 0.6) * 0.15 +
-    sin(nx * 8.0 - t * 0.3 + sin(ny * 4.0 + t * 0.5) * 1.5) * 0.15;
+    sin(any2 * 12.0 + t * 0.8 + sin(anx * 6.0 + t * 0.3) * 2.0 + mWarp) * 0.5 +
+    sin(any2 * 8.0 - t * 0.5 + cos(anx * 4.0 + t * 0.7) * 1.5 + mWarp * 0.5) * 0.3 +
+    sin((anx + any2) * 10.0 + t * 0.4) * 0.2 +
+    sin(anx * 5.0 + any2 * 3.0 + t * 0.6) * 0.15 +
+    sin(anx * 8.0 - t * 0.3 + sin(any2 * 4.0 + t * 0.5) * 1.5) * 0.15;
   float mGlow = 0.35 * exp(-mDist2 / (2.0 * 0.12));
   float auroraI = clamp((aurora + 0.6) * 0.7 + mGlow, 0.0, 1.0);
 
-  float throttledI = voroI * 0.4 + terrainH * 0.6;
+  // Cursor-following hotspot for throttled state
+  float cursorGlow = 0.3 * exp(-tDist2 / (2.0 * 0.06));
+  float throttledI = voroI * 0.4 + terrainH * 0.6 + cursorGlow;
 
-  // Click effects (per-state)
-  float clickAge = u_click.z;
-  if (clickAge < 3.0) {
-    float cdx = (nx - u_click.x) * aspect;
-    float cdy = ny - u_click.y;
+  // Click effects — loop over click event ring buffer
+  // Clear: no shader effect (CPU-side repulsion only)
+  // Throttled: each click adds a decaying brightness hotspot (accumulates)
+  float totalGlow = 0.0;
+  float totalVoroBoost = 0.0;
+  for (int i = 0; i < ${8}; i++) {
+    float age = u_clicks[i].z;
+    if (age >= 5.0) continue;
+
+    float cdx = (nx - u_clicks[i].x) * aspect;
+    float cdy = ny - u_clicks[i].y;
     float cDist = sqrt(cdx * cdx + cdy * cdy);
-    float fade = exp(-clickAge * 1.5); // overall fade-out
 
-    // Clear: boost pointer metaball size (blobs also repulsed on CPU)
-    float pointerBoost = fade * 0.15;
-    {
-      float pdx = (nx - u_click.x) * aspect;
-      float pdy = ny - u_click.y;
-      float pd2 = pdx * pdx + pdy * pdy;
-      float boostedR = 0.08 + pointerBoost;
-      meta += (boostedR * boostedR) / (pd2 + 0.0015);
-    }
-    metaI = min(meta / 1.5, 1.0);
+    float easeIn = smoothstep(0.0, 0.15, age);
+    float fade = easeIn * exp(-max(age - 0.15, 0.0) * 1.2);
 
-    // Throttled: amplify voronoi + terrain glow around click
-    float clickGlow = 0.8 * exp(-cDist * cDist / (2.0 * 0.06)) * fade;
-    terrainH = min(1.0, terrainH + clickGlow);
-    // Sharpen voronoi near click (push cells apart visually)
-    float voroBoost = 0.4 * exp(-cDist * cDist / (2.0 * 0.04)) * fade;
-    throttledI = min(1.0, voroI * (0.4 + voroBoost) + terrainH * 0.6);
-
-    // Weekend: ripple rings that modulate the aurora from click point
-    float rippleSpeed = 0.6;
-    float rippleWave = sin(cDist * 25.0 - clickAge * rippleSpeed * 25.0);
-    float rippleEnv = exp(-cDist * 3.0) * fade; // stronger near click
-    auroraI = clamp(auroraI + rippleWave * rippleEnv * 0.35, 0.0, 1.0);
+    totalGlow += 0.6 * exp(-cDist * cDist / (2.0 * 0.08)) * fade;
+    totalVoroBoost += 0.3 * exp(-cDist * cDist / (2.0 * 0.05)) * fade;
   }
+  terrainH = min(1.0, terrainH + totalGlow);
+  throttledI = min(1.0, voroI * (0.4 + totalVoroBoost) + terrainH * 0.6 + cursorGlow);
 
   // Noise dissolve transition
   // Each pixel gets a noise threshold; blend progress sweeps across it

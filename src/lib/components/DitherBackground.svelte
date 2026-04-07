@@ -125,8 +125,7 @@
 		const scaleX = w / (pageW * dpr);
 		const scaleY = h / (pageH * dpr);
 
-		const clickAge =
-			state.clickTime > 0 ? performance.now() / 1000 - state.clickTime : 10.0;
+		const nowSec = performance.now() / 1000;
 
 		// ── Pass 1: Dither to FBO (at reduced resolution) ──
 		gl.bindFramebuffer(gl.FRAMEBUFFER, ditherFBO.framebuffer);
@@ -149,8 +148,19 @@
 			u_resolution: [bw, bh],
 			u_offset: [offX, offY, scaleX, scaleY],
 			u_alpha: state.alpha,
-			u_click: [state.clickX, state.clickY, clickAge],
 		});
+
+		// Pass click events as u_clicks[i] uniforms
+		for (let i = 0; i < 8; i++) {
+			const loc = gl.getUniformLocation(ditherProg, `u_clicks[${i}]`);
+			if (!loc) continue;
+			const click = state.clicks[i];
+			if (click) {
+				gl.uniform3f(loc, click.x, click.y, nowSec - click.birth);
+			} else {
+				gl.uniform3f(loc, 0, 0, 10.0); // inactive
+			}
+		}
 
 		for (let i = 0; i < NUM_BLOBS; i++) {
 			const loc = gl.getUniformLocation(ditherProg, `u_blobs[${i}]`);
