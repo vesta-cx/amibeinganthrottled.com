@@ -5,8 +5,10 @@
 	import { GLASS, LIGHTING, FROST, DITHER } from '$lib/constants';
 	import { FULLSCREEN_QUAD_VERT } from '$lib/shaders/fullscreen-quad.vert';
 	import { DITHER_FRAG } from '$lib/shaders/dither.frag';
+	import { CA_FRAG } from '$lib/shaders/ca.frag';
 	import { BLUR_FRAG } from '$lib/shaders/blur.frag';
 	import { GLASS_FRAG } from '$lib/shaders/glass.frag';
+	import { BLOOM_FRAG } from '$lib/shaders/bloom.frag';
 	import { createProgram, setUniforms } from '$lib/gl/program';
 	import { createFBO, resizeFBO, destroyFBO, type FBO } from '$lib/gl/fbo';
 	import { createBayerTexture } from '$lib/gl/bayer';
@@ -20,13 +22,20 @@
 	let canvas: HTMLCanvasElement;
 
 	// GL state managed across mount/destroy
+	const CA_STRENGTH = 0.1;
+	const BLOOM_INTENSITY = 0.15;
+
 	let gl: WebGLRenderingContext | null = null;
 	let ditherProg: WebGLProgram | null = null;
+	let caProg: WebGLProgram | null = null;
 	let blurProg: WebGLProgram | null = null;
 	let glassProg: WebGLProgram | null = null;
+	let bloomProg: WebGLProgram | null = null;
 	let sceneFBO: FBO | null = null;
 	let blurFBO_A: FBO | null = null;
 	let blurFBO_B: FBO | null = null;
+	let caFBO: FBO | null = null;
+	let glassFBO: FBO | null = null;
 	let bayerTex: WebGLTexture | null = null;
 	let quadBuffer: WebGLBuffer | null = null;
 
@@ -41,8 +50,10 @@
 
 		// Compile programs
 		ditherProg = createProgram(gl, FULLSCREEN_QUAD_VERT, DITHER_FRAG);
+		caProg = createProgram(gl, FULLSCREEN_QUAD_VERT, CA_FRAG);
 		blurProg = createProgram(gl, FULLSCREEN_QUAD_VERT, BLUR_FRAG);
 		glassProg = createProgram(gl, FULLSCREEN_QUAD_VERT, GLASS_FRAG);
+		bloomProg = createProgram(gl, FULLSCREEN_QUAD_VERT, BLOOM_FRAG);
 
 		// Fullscreen quad geometry
 		quadBuffer = gl.createBuffer();
@@ -54,7 +65,7 @@
 		);
 
 		// Bind a_position for all programs
-		for (const prog of [ditherProg, blurProg, glassProg]) {
+		for (const prog of [ditherProg, caProg, blurProg, glassProg, bloomProg]) {
 			const loc = gl.getAttribLocation(prog, 'a_position');
 			if (loc >= 0) {
 				gl.enableVertexAttribArray(loc);
@@ -77,6 +88,8 @@
 		sceneFBO = createFBO(gl, 2, 2);
 		blurFBO_A = createFBO(gl, 2, 2);
 		blurFBO_B = createFBO(gl, 2, 2);
+		caFBO = createFBO(gl, 2, 2);
+		glassFBO = createFBO(gl, 2, 2);
 
 		// Clear to transparent so the card isn't white before the first render
 		gl.clearColor(0, 0, 0, 0);
@@ -89,26 +102,34 @@
 		if (sceneFBO) destroyFBO(gl, sceneFBO);
 		if (blurFBO_A) destroyFBO(gl, blurFBO_A);
 		if (blurFBO_B) destroyFBO(gl, blurFBO_B);
+		if (caFBO) destroyFBO(gl, caFBO);
+		if (glassFBO) destroyFBO(gl, glassFBO);
 
 		if (bayerTex) gl.deleteTexture(bayerTex);
 		if (quadBuffer) gl.deleteBuffer(quadBuffer);
 		if (ditherProg) gl.deleteProgram(ditherProg);
+		if (caProg) gl.deleteProgram(caProg);
 		if (blurProg) gl.deleteProgram(blurProg);
 		if (glassProg) gl.deleteProgram(glassProg);
+		if (bloomProg) gl.deleteProgram(bloomProg);
 
 		gl = null;
 		ditherProg = null;
+		caProg = null;
 		blurProg = null;
 		glassProg = null;
+		bloomProg = null;
 		sceneFBO = null;
 		blurFBO_A = null;
 		blurFBO_B = null;
+		caFBO = null;
+		glassFBO = null;
 		bayerTex = null;
 		quadBuffer = null;
 	}
 
 	export function render(state: FrameState): void {
-		if (!gl || !ditherProg || !blurProg || !glassProg || !sceneFBO || !blurFBO_A || !blurFBO_B || !bayerTex) return;
+		if (!gl || !ditherProg || !caProg || !blurProg || !glassProg || !bloomProg || !sceneFBO || !blurFBO_A || !blurFBO_B || !caFBO || !glassFBO || !bayerTex) return;
 
 		const dpr = window.devicePixelRatio || 1;
 		const w = canvas.clientWidth;
@@ -136,8 +157,10 @@
 		const blurScale = 0.25;
 		const bw = Math.max(1, Math.round(vpW * blurScale));
 		const bh = Math.max(1, Math.round(vpH * blurScale));
+		resizeFBO(gl, caFBO, vpW, vpH);
 		resizeFBO(gl, blurFBO_A, bw, bh);
 		resizeFBO(gl, blurFBO_B, bw, bh);
+		resizeFBO(gl, glassFBO, pw, ph);
 
 		// Card rect in normalized viewport coords
 		const cardRect = canvas.getBoundingClientRect();
@@ -209,7 +232,33 @@
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-		// ── Pass 2: H-blur scene FBO -> blur FBO A (quarter res) ──
+		// ── Pass 2: Chromatic aberration (scene FBO -> CA FBO) ──
+		gl.bindFramebuffer(gl.FRAMEBUFFER, caFBO.framebuffer);
+		gl.viewport(0, 0, vpW, vpH);
+		gl.useProgram(caProg);
+
+		const caPosLoc = gl.getAttribLocation(caProg, 'a_position');
+		gl.enableVertexAttribArray(caPosLoc);
+		gl.vertexAttribPointer(caPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, sceneFBO.texture);
+		gl.uniform1i(gl.getUniformLocation(caProg, 'u_scene'), 1);
+
+		// Center CA on the card's position in viewport UV space
+		const caCenterU = offX + scaleX * 0.5;
+		const caCenterV = offY + scaleY * 0.5;
+
+		setUniforms(gl, caProg, {
+			u_resolution: [vpW, vpH],
+			u_strength: CA_STRENGTH,
+			u_canvasScale: [1.0, 1.0],
+			u_center: [caCenterU, 1.0 - caCenterV], // flip Y for GL
+		});
+
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+		// ── Pass 3: H-blur CA FBO -> blur FBO A (quarter res) ──
 		const blurRadius = FROST.blur * dpr * blurScale;
 
 		gl.bindFramebuffer(gl.FRAMEBUFFER, blurFBO_A.framebuffer);
@@ -220,9 +269,9 @@
 		gl.enableVertexAttribArray(blurPosLoc);
 		gl.vertexAttribPointer(blurPosLoc, 2, gl.FLOAT, false, 0, 0);
 
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, sceneFBO.texture);
-		gl.uniform1i(gl.getUniformLocation(blurProg, 'u_scene'), 1);
+		gl.activeTexture(gl.TEXTURE2);
+		gl.bindTexture(gl.TEXTURE_2D, caFBO.texture);
+		gl.uniform1i(gl.getUniformLocation(blurProg, 'u_scene'), 2);
 
 		setUniforms(gl, blurProg, {
 			u_resolution: [bw, bh],
@@ -232,7 +281,7 @@
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-		// ── Pass 3: V-blur blur FBO A -> blur FBO B (quarter res) ──
+		// ── Pass 4: V-blur blur FBO A -> blur FBO B (quarter res) ──
 		gl.bindFramebuffer(gl.FRAMEBUFFER, blurFBO_B.framebuffer);
 		gl.viewport(0, 0, bw, bh);
 
@@ -248,8 +297,8 @@
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-		// ── Pass 4: Glass refraction -> screen ──
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		// ── Pass 5: Glass refraction -> glassFBO ──
+		gl.bindFramebuffer(gl.FRAMEBUFFER, glassFBO.framebuffer);
 		gl.viewport(0, 0, pw, ph);
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -261,12 +310,12 @@
 		gl.enableVertexAttribArray(glassPosLoc);
 		gl.vertexAttribPointer(glassPosLoc, 2, gl.FLOAT, false, 0, 0);
 
-		// Sharp scene on texture unit 1
+		// Sharp scene (with CA) on texture unit 1
 		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, sceneFBO.texture);
+		gl.bindTexture(gl.TEXTURE_2D, caFBO.texture);
 		gl.uniform1i(gl.getUniformLocation(glassProg, 'u_scene'), 1);
 
-		// Blurred scene on texture unit 4
+		// Blurred scene (with CA) on texture unit 4
 		gl.activeTexture(gl.TEXTURE4);
 		gl.bindTexture(gl.TEXTURE_2D, blurFBO_B.texture);
 		gl.uniform1i(gl.getUniformLocation(glassProg, 'u_blurredScene'), 4);
@@ -318,6 +367,35 @@
 			u_dropShadowAlpha: LIGHTING.dropShadowAlpha,
 			u_dropShadowBlur: LIGHTING.dropShadowBlur * dpr,
 			u_dropShadowOffset: [LIGHTING.dropShadowOffX * dpr, LIGHTING.dropShadowOffY * dpr],
+		});
+
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.disable(gl.BLEND);
+
+		// ── Pass 6: Bloom composite (glassFBO + blurred scene -> screen) ──
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.viewport(0, 0, pw, ph);
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+		gl.clearColor(0, 0, 0, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.useProgram(bloomProg);
+
+		const bloomPosLoc = gl.getAttribLocation(bloomProg, 'a_position');
+		gl.enableVertexAttribArray(bloomPosLoc);
+		gl.vertexAttribPointer(bloomPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+		gl.activeTexture(gl.TEXTURE6);
+		gl.bindTexture(gl.TEXTURE_2D, glassFBO.texture);
+		gl.uniform1i(gl.getUniformLocation(bloomProg, 'u_scene'), 6);
+
+		gl.activeTexture(gl.TEXTURE7);
+		gl.bindTexture(gl.TEXTURE_2D, blurFBO_B.texture);
+		gl.uniform1i(gl.getUniformLocation(bloomProg, 'u_bloom'), 7);
+
+		setUniforms(gl, bloomProg, {
+			u_resolution: [pw, ph],
+			u_intensity: BLOOM_INTENSITY,
 		});
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

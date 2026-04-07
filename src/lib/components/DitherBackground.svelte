@@ -3,8 +3,10 @@
 	import { NUM_BLOBS } from '$lib/blobs';
 	import { FULLSCREEN_QUAD_VERT } from '$lib/shaders/fullscreen-quad.vert';
 	import { DITHER_FRAG } from '$lib/shaders/dither.frag';
+	import { CA_FRAG } from '$lib/shaders/ca.frag';
 	import { BLUR_FRAG } from '$lib/shaders/blur.frag';
 	import { FROST_FRAG } from '$lib/shaders/frost.frag';
+	import { BLOOM_FRAG } from '$lib/shaders/bloom.frag';
 	import { createProgram, setUniforms } from '$lib/gl/program';
 	import { createFBO, resizeFBO, destroyFBO, type FBO } from '$lib/gl/fbo';
 	import { createBayerTexture } from '$lib/gl/bayer';
@@ -12,19 +14,25 @@
 
 	const OVERFLOW = FROST.noiseScale;
 	const BLUR_SCALE = 0.25;
+	const CA_STRENGTH = 0.1;
+	const BLOOM_INTENSITY = 0.15;
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 
 	let gl: WebGLRenderingContext;
 	let ditherProg: WebGLProgram;
+	let caProg: WebGLProgram;
 	let blurProg: WebGLProgram;
 	let frostProg: WebGLProgram;
+	let bloomProg: WebGLProgram;
 	let bayerTex: WebGLTexture;
 	let quadBuf: WebGLBuffer;
 
 	let ditherFBO: FBO;
+	let caFBO: FBO;
 	let blurFBO_A: FBO;
 	let blurFBO_B: FBO;
+	let frostFBO: FBO;
 
 	function getViewportSize(): { w: number; h: number } {
 		if (typeof window === 'undefined') return { w: 0, h: 0 };
@@ -44,8 +52,10 @@
 
 		// Compile programs
 		ditherProg = createProgram(gl, FULLSCREEN_QUAD_VERT, DITHER_FRAG);
+		caProg = createProgram(gl, FULLSCREEN_QUAD_VERT, CA_FRAG);
 		blurProg = createProgram(gl, FULLSCREEN_QUAD_VERT, BLUR_FRAG);
 		frostProg = createProgram(gl, FULLSCREEN_QUAD_VERT, FROST_FRAG);
+		bloomProg = createProgram(gl, FULLSCREEN_QUAD_VERT, BLOOM_FRAG);
 
 		// Bayer texture on unit 0
 		bayerTex = createBayerTexture(gl);
@@ -62,7 +72,7 @@
 		);
 
 		// Bind a_position for all programs (shared attribute layout, same buffer stays bound)
-		for (const prog of [ditherProg, blurProg, frostProg]) {
+		for (const prog of [ditherProg, caProg, blurProg, frostProg, bloomProg]) {
 			const aPos = gl.getAttribLocation(prog, 'a_position');
 			if (aPos >= 0) {
 				gl.enableVertexAttribArray(aPos);
@@ -72,24 +82,30 @@
 
 		// Create initial FBOs at 1x1 (will resize on first render)
 		ditherFBO = createFBO(gl, 1, 1);
+		caFBO = createFBO(gl, 1, 1);
 		blurFBO_A = createFBO(gl, 1, 1);
 		blurFBO_B = createFBO(gl, 1, 1);
+		frostFBO = createFBO(gl, 1, 1);
 	}
 
 	function cleanupGL(): void {
 		if (!gl) return;
 		destroyFBO(gl, ditherFBO);
+		destroyFBO(gl, caFBO);
 		destroyFBO(gl, blurFBO_A);
 		destroyFBO(gl, blurFBO_B);
+		destroyFBO(gl, frostFBO);
 		gl.deleteTexture(bayerTex);
 		gl.deleteBuffer(quadBuf);
 		gl.deleteProgram(ditherProg);
+		gl.deleteProgram(caProg);
 		gl.deleteProgram(blurProg);
 		gl.deleteProgram(frostProg);
+		gl.deleteProgram(bloomProg);
 	}
 
 	export function render(state: FrameState): void {
-		if (!gl || !canvasEl || !ditherProg || !blurProg || !frostProg || !bayerTex || !quadBuf || !ditherFBO || !blurFBO_A || !blurFBO_B) return;
+		if (!gl || !canvasEl || !ditherProg || !caProg || !blurProg || !frostProg || !bloomProg || !bayerTex || !quadBuf || !ditherFBO || !caFBO || !blurFBO_A || !blurFBO_B || !frostFBO) return;
 
 		const dpr = window.devicePixelRatio || 1;
 		const cw = canvasEl.clientWidth;
@@ -109,8 +125,10 @@
 
 		// Resize FBOs if needed
 		resizeFBO(gl, ditherFBO, bw, bh);
+		resizeFBO(gl, caFBO, bw, bh);
 		resizeFBO(gl, blurFBO_A, bw, bh);
 		resizeFBO(gl, blurFBO_B, bw, bh);
+		resizeFBO(gl, frostFBO, w, h);
 
 		const viewport = getViewportSize();
 		const pageW = viewport.w;
@@ -207,14 +225,31 @@
 		});
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-		// ── Pass 4: Frost displacement (blur FBO B -> screen) ──
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-		gl.viewport(0, 0, w, h);
-		gl.useProgram(frostProg);
+		// ── Pass 4: Chromatic aberration (blur FBO B -> CA FBO) ──
+		gl.bindFramebuffer(gl.FRAMEBUFFER, caFBO.framebuffer);
+		gl.viewport(0, 0, bw, bh);
+		gl.useProgram(caProg);
 
 		gl.activeTexture(gl.TEXTURE3);
 		gl.bindTexture(gl.TEXTURE_2D, blurFBO_B.texture);
-		gl.uniform1i(gl.getUniformLocation(frostProg, 'u_scene'), 3);
+		gl.uniform1i(gl.getUniformLocation(caProg, 'u_scene'), 3);
+
+		setUniforms(gl, caProg, {
+			u_resolution: [bw, bh],
+			u_strength: CA_STRENGTH,
+			u_canvasScale: [w / (pageW * dpr), h / (pageH * dpr)],
+			u_center: [0.5, 0.5],
+		});
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+		// ── Pass 5: Frost displacement (CA FBO -> frost FBO) ──
+		gl.bindFramebuffer(gl.FRAMEBUFFER, frostFBO.framebuffer);
+		gl.viewport(0, 0, w, h);
+		gl.useProgram(frostProg);
+
+		gl.activeTexture(gl.TEXTURE4);
+		gl.bindTexture(gl.TEXTURE_2D, caFBO.texture);
+		gl.uniform1i(gl.getUniformLocation(frostProg, 'u_scene'), 4);
 
 		setUniforms(gl, frostProg, {
 			u_resolution: [w, h],
@@ -223,6 +258,25 @@
 			u_channelSpread: FROST.channelSpread,
 			u_darken: FROST.bgDarken,
 			u_overlayBg: bgRGB,
+		});
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+		// ── Pass 6: Bloom composite (frost FBO + blur source -> screen) ──
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.viewport(0, 0, w, h);
+		gl.useProgram(bloomProg);
+
+		gl.activeTexture(gl.TEXTURE5);
+		gl.bindTexture(gl.TEXTURE_2D, frostFBO.texture);
+		gl.uniform1i(gl.getUniformLocation(bloomProg, 'u_scene'), 5);
+
+		gl.activeTexture(gl.TEXTURE6);
+		gl.bindTexture(gl.TEXTURE_2D, caFBO.texture);
+		gl.uniform1i(gl.getUniformLocation(bloomProg, 'u_bloom'), 6);
+
+		setUniforms(gl, bloomProg, {
+			u_resolution: [w, h],
+			u_intensity: BLOOM_INTENSITY,
 		});
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
