@@ -34,7 +34,6 @@
 		"eslint": "^10.0.3",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.15.2",
-		"flag-icons": "^7.5.0",
 		"globals": "^17.4.0",
 		"openai": "^6.33.0",
 		"playwright": "^1.58.2",
@@ -66,6 +65,7 @@
 		"@fontsource/vt323": "^5.2.7"
 	},
 	"dependencies": {
+		"flag-icons": "^7.5.0",
 		"@fontsource-variable/fraunces": "^5.2.9",
 		"@fontsource-variable/nunito": "^5.2.7",
 		"@fontsource/space-mono": "^5.2.9"

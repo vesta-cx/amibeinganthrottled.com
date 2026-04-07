@@ -3,8 +3,7 @@
 	import { page } from '$app/state';
 	import { localizeHref } from '$lib/paraglide/runtime';
 	import { goto } from '$app/navigation';
-	import type { ThrottleState } from '$lib/throttle';
-	import { getThrottleResult } from '$lib/dev-state';
+	import { throttle, type ThrottleResult, type ThrottleState } from '$lib/throttle';
 	import { createBlobs, tickBlobs, applyClickBurst, type Blob } from '$lib/blobs';
 	import {
 		lerpColor,
@@ -24,12 +23,17 @@
 	import '@fontsource/space-mono/400.css';
 	import '@fontsource/space-mono/700.css';
 
-	// ── Conditional DevBar import ──
+	// ── Conditional dev-only imports ──
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let DevBar: any = $state(undefined);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let devGetThrottleResult: any = $state(undefined);
 	if (dev) {
 		import('$lib/components/DevBar.svelte').then((m) => {
 			DevBar = m.default;
+		});
+		import('$lib/dev-state').then((m) => {
+			devGetThrottleResult = m.getThrottleResult;
 		});
 	}
 
@@ -79,12 +83,15 @@
 	const stateOverride = $derived(
 		dev ? (page.url.searchParams.get('state') as ThrottleState | null) : null,
 	);
-	const result: import('$lib/throttle').ThrottleResult = $derived(getThrottleResult(stateOverride, now));
+	const result: ThrottleResult = $derived(
+		devGetThrottleResult && stateOverride
+			? devGetThrottleResult(stateOverride, now)
+			: throttle(now),
+	);
 	const throttleState: ThrottleState = $derived(result.state);
 
 	// Eagerly compute initial state so colors/blends don't flash from 'clear'
-	const initialStateOverride = dev ? (page.url.searchParams.get('state') as ThrottleState | null) : null;
-	const initialState: ThrottleState = getThrottleResult(initialStateOverride, new Date()).state;
+	const initialState: ThrottleState = throttle(new Date()).state;
 
 	// ── Pointer state ──
 	// mouseX/mouseY are the smoothed values passed to shaders/blobs.
