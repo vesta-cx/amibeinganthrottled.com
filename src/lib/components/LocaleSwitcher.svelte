@@ -22,4 +22,4 @@
 	);
 </script>
 
-<PopoutSelect {items} selected={locale} onSelect={(v) => onSelect(v)} />
+<PopoutSelect {items} selected={locale} onSelect={(v) => onSelect(v)} hideLabel />

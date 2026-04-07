@@ -10,10 +10,11 @@
 		items: Item[];
 		selected: string;
 		onSelect: (value: string) => void;
+		hideLabel?: boolean;
 		class?: string;
 	}
 
-	let { items, selected, onSelect, class: className = '' }: Props = $props();
+	let { items, selected, onSelect, hideLabel = false, class: className = '' }: Props = $props();
 
 	let open = $state(false);
 	let containerRef: HTMLDivElement | undefined = $state(undefined);
@@ -54,14 +55,16 @@
 
 <div class="popout-select {className}" bind:this={containerRef}>
 	<!-- Trigger button: shows current selection -->
-	<button class="popout-trigger" onclick={toggle} aria-expanded={open}>
+	<button class="popout-trigger" onclick={toggle} aria-expanded={open} aria-label={selectedItem.label}>
 		{#if selectedItem.icon}
 			<span class="popout-icon">{@html selectedItem.icon}</span>
 		{/if}
 		{#if selectedItem.swatch}
 			<span class="popout-swatch" style="background: {selectedItem.swatch}"></span>
 		{/if}
-		<span class="popout-label">{selectedItem.label}</span>
+		{#if !hideLabel}
+			<span class="popout-label">{selectedItem.label}</span>
+		{/if}
 	</button>
 
 	<!-- Expanded list: positioned relative to selected item -->
