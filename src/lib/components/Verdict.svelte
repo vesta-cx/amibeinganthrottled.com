@@ -88,10 +88,11 @@
 
 	.question {
 		margin: 0;
-		font-size: clamp(12px, 1.4vw, 14px);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		font-size: 0.75rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
 		line-height: 1;
+		margin-bottom: 0.375rem;
 	}
 
 	.verdict {

@@ -257,7 +257,7 @@
 
 	<div
 		class="relative z-10"
-		style="width: min(100vw - 2rem, 80rem); height: min(100dvh - 2rem, 45rem);"
+		style="width: min(100vw - 2rem, 80rem); height: min(100dvh - 2rem, 32rem);"
 		bind:clientHeight={cardHeight}
 	>
 		<GlassCard bind:this={cardRef} {frostHeight} />

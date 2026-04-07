@@ -21,7 +21,7 @@
 </script>
 
 <div>
-	<p class="text-xs font-semibold tracking-wide mb-1.5 leading-none" style="color:{subtextColor}">
+	<p class="text-xs font-semibold tracking-wider mb-1.5 leading-none" style="color:{subtextColor}">
 		{eyebrowLabels[state]}
 	</p>
 	<p class="font-['Fraunces',serif] text-[clamp(20px,2.8vw,28px)] leading-tight m-0 sm:whitespace-nowrap"
