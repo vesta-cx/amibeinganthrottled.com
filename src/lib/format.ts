@@ -72,3 +72,33 @@ export const formatPeakHoursLocal = (tz?: string, ref?: Date): string => {
 
 	return `${fmt(5)}–${fmt(11)} ${abbr}`.trim()
 }
+
+// Returns a pure English string for a countdown duration.
+// Uses the same zero-suppression logic as formatCountdown, handles plurals,
+// and applies Oxford comma for 3+ units.
+export const formatCountdownEnglish = (ms: number): string => {
+	const { days, hours, minutes, seconds, units } = formatCountdown(ms)
+	
+	const parts: string[] = []
+	
+	if (units.includes('days')) {
+		parts.push(`${days} ${days === 1 ? 'day' : 'days'}`)
+	}
+	if (units.includes('hours')) {
+		parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`)
+	}
+	if (units.includes('minutes')) {
+		parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`)
+	}
+	if (units.includes('seconds')) {
+		parts.push(`${seconds} ${seconds === 1 ? 'second' : 'seconds'}`)
+	}
+	
+	if (parts.length === 0) return '0 seconds'
+	if (parts.length === 1) return parts[0]
+	if (parts.length === 2) return `${parts[0]} and ${parts[1]}`
+	
+	// Oxford comma for 3+ units
+	const last = parts.pop()
+	return `${parts.join(', ')}, and ${last}`
+}
