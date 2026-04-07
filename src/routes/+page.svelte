@@ -34,9 +34,19 @@
 	}
 
 	// ── Theme ──
-	// Server passes theme from cookie via layout.server.ts → no flash on hydration
+	// Server resolves 'auto' → 'anthropic-dark' (can't run matchMedia in SSR).
+	// On mount, re-resolve from the cookie so light-mode users get the correct palette.
 	const initialTheme = (page.data.theme as Theme) ?? 'anthropic-dark';
 	let theme: Theme = $state(initialTheme);
+
+	if (typeof window !== 'undefined') {
+		const rawCookie = document.cookie.match(/(?:^|; )THEME=([^;]*)/)?.[1] ?? 'auto';
+		if (rawCookie === 'auto') {
+			theme = (window.matchMedia('(prefers-color-scheme: light)').matches
+				? 'anthropic-light'
+				: 'anthropic-dark') as Theme;
+		}
+	}
 
 	function handleThemeSelect(t: string) {
 		theme = t as Theme;
