@@ -321,10 +321,16 @@ void main() {
       tw += w;
     }
     blurred /= tw;
-    // Screen blend: only brightens, never darkens. Drop shadow handles darkening.
-    // screen(base, blend) = 1 - (1-base)*(1-blend)
-    vec3 screened = 1.0 - (1.0 - tinted) * (1.0 - blurred);
-    tinted = mix(tinted, screened, edgeAlpha);
+    // Gamma-boost the blurred sample so more values cross the 0.5 threshold.
+    // Without this, the pre-blurred quarter-res averages sit below 0.5 and
+    // overlay only ever multiplies (darkens). Gamma 0.5 lifts midtones.
+    blurred = pow(blurred, vec3(0.5));
+    // Overlay blend keyed on the (gamma-boosted) blend layer
+    vec3 ov;
+    ov.r = blurred.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
+    ov.g = blurred.g < 0.5 ? 2.0 * tinted.g * blurred.g : 1.0 - 2.0 * (1.0 - tinted.g) * (1.0 - blurred.g);
+    ov.b = blurred.b < 0.5 ? 2.0 * tinted.b * blurred.b : 1.0 - 2.0 * (1.0 - tinted.b) * (1.0 - blurred.b);
+    tinted = mix(tinted, ov, edgeAlpha);
   }
 
   // Output with alpha for AA edge blending (canvas is transparent outside)
