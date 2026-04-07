@@ -3,6 +3,8 @@ import { formatCountdown } from './format'
 export interface CountdownPart {
 	n: number
 	word: string
+	/** Stable unit identifier for keyed-each (does not change with singular/plural) */
+	unit: 'day' | 'hour' | 'minute' | 'second'
 }
 
 export interface UnitWords {
@@ -60,10 +62,10 @@ export function formatCountdownProse(
 	const { days, hours, minutes, seconds } = formatCountdown(ms)
 
 	const all: CountdownPart[] = [
-		{ n: days, word: days === 1 ? unitWords.day : unitWords.days },
-		{ n: hours, word: hours === 1 ? unitWords.hour : unitWords.hours },
-		{ n: minutes, word: minutes === 1 ? unitWords.minute : unitWords.minutes },
-		{ n: seconds, word: seconds === 1 ? unitWords.second : unitWords.seconds }
+		{ n: days, word: days === 1 ? unitWords.day : unitWords.days, unit: 'day' },
+		{ n: hours, word: hours === 1 ? unitWords.hour : unitWords.hours, unit: 'hour' },
+		{ n: minutes, word: minutes === 1 ? unitWords.minute : unitWords.minutes, unit: 'minute' },
+		{ n: seconds, word: seconds === 1 ? unitWords.second : unitWords.seconds, unit: 'second' }
 	]
 
 	const start = all.findIndex((p) => p.n > 0)

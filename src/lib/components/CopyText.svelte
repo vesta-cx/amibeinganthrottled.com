@@ -18,6 +18,7 @@
 
 	let currentIndex = 0;
 	let text = $state('');
+	let started = false;
 
 	// Derive the string pool — only changes when state or locale actually change
 	const strings = $derived.by(() => {
@@ -26,17 +27,22 @@
 		return (localeData[throttleState] ?? []) as string[];
 	});
 
-	// When the string pool changes, pick a new random target and reset rotation
+	// When the string pool changes, pick a new random target and reset rotation.
+	// Only calls setTarget after startTyping() has been called — prevents CopyText
+	// from racing ahead of the Verdict typewriter on mount.
 	$effect(() => {
 		const pool = strings;
 		if (pool.length === 0) return;
 
 		untrack(() => {
 			currentIndex = Math.floor(Math.random() * pool.length);
-			typewriter.setTarget(pool[currentIndex]);
+			if (started) {
+				typewriter.setTarget(pool[currentIndex]);
+			}
 		});
 
 		const timer = setInterval(() => {
+			if (!started) return;
 			currentIndex = (currentIndex + 1) % pool.length;
 			typewriter.setTarget(pool[currentIndex]);
 		}, ROTATION_INTERVAL_MS);
@@ -59,7 +65,16 @@
 	}
 
 	export function startTyping(): void {
-		typewriter.startTyping();
+		if (!started) {
+			started = true;
+			// First call: set target from the pre-selected pool index
+			const pool = strings;
+			if (pool.length > 0) {
+				typewriter.setTarget(pool[currentIndex]);
+			}
+		} else {
+			typewriter.startTyping();
+		}
 	}
 </script>
 

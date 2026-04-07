@@ -31,7 +31,7 @@
 		onLocaleSelect,
 	}: Props = $props();
 
-	let verdictPhase: TypewriterPhase = $state('idle');
+	let verdictPhase: TypewriterPhase = $state('typing');
 	let copyTextRef: CopyText | undefined = $state(undefined);
 
 	// When the verdict finishes typing, trigger CopyText to start
