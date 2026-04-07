@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { dev } from '$app/environment';
 	import { page } from '$app/state';
-	import { getLocale, setLocale } from '$lib/paraglide/runtime';
+	import { localizeHref } from '$lib/paraglide/runtime';
+	import { goto } from '$app/navigation';
 	import type { ThrottleState } from '$lib/throttle';
 	import { getThrottleResult } from '$lib/dev-state';
 	import { createBlobs, tickBlobs, applyClickBurst, type Blob } from '$lib/blobs';
@@ -50,7 +51,8 @@
 	});
 
 	function handleLocaleSelect(loc: string) {
-		setLocale(loc as 'en', { reload: false });
+		const href = localizeHref('/', { locale: loc as 'en' });
+		goto(href, { noScroll: true });
 	}
 
 	// ── Clock ──
