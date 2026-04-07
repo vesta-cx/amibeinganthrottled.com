@@ -321,11 +321,13 @@ void main() {
       tw += w;
     }
     blurred /= tw;
-    // Overlay blend: 2*base*blend when dark, 1-2*(1-base)*(1-blend) when bright
+    // Overlay keyed on the BLEND layer (blurred background), not the base.
+    // Where the background is bright → screen (lifts card surface).
+    // Where the background is dark → multiply (deepens card surface).
     vec3 overlay;
-    overlay.r = tinted.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
-    overlay.g = tinted.g < 0.5 ? 2.0 * tinted.g * blurred.g : 1.0 - 2.0 * (1.0 - tinted.g) * (1.0 - blurred.g);
-    overlay.b = tinted.b < 0.5 ? 2.0 * tinted.b * blurred.b : 1.0 - 2.0 * (1.0 - tinted.b) * (1.0 - blurred.b);
+    overlay.r = blurred.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
+    overlay.g = blurred.g < 0.5 ? 2.0 * tinted.g * blurred.g : 1.0 - 2.0 * (1.0 - tinted.g) * (1.0 - blurred.g);
+    overlay.b = blurred.b < 0.5 ? 2.0 * tinted.b * blurred.b : 1.0 - 2.0 * (1.0 - tinted.b) * (1.0 - blurred.b);
     tinted = mix(tinted, overlay, edgeAlpha);
   }
 
