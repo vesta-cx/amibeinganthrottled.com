@@ -35,6 +35,7 @@ uniform float u_dropShadowBlur;    // drop shadow blur width in px
 uniform vec2  u_dropShadowOffset;  // drop shadow offset in px
 uniform float u_edgeBloom;         // edge bloom intensity (0.0–1.0)
 uniform float u_edgeBloomRadius;   // bloom falloff radius in px
+uniform vec2  u_blurResolution;   // blur FBO resolution (quarter viewport)
 
 // Map card-local UV (0-1 within card) to viewport UV (0-1 within FBO)
 vec2 cardToViewport(vec2 cardUV) {
@@ -300,7 +301,7 @@ void main() {
   float edgeLinear = smoothstep(-u_edgeBloomRadius, 0.0, dist);
   float edgeAlpha = edgeLinear * edgeLinear * u_edgeBloom; // quadratic falloff
   if (edgeAlpha > 0.001) {
-    vec2 bloomTexel = 1.0 / u_sceneResolution;
+    vec2 bloomTexel = 1.0 / u_blurResolution; // step in blur FBO texels
     float radius = 8.0; // light softening — source is already blurred
     float sigma = radius / 3.0;
     float denom = 2.0 * sigma * sigma;

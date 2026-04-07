@@ -361,6 +361,7 @@
 			u_dropShadowOffset: [LIGHTING.dropShadowOffX * dpr, LIGHTING.dropShadowOffY * dpr],
 			u_edgeBloom: EDGE_BLOOM,
 			u_edgeBloomRadius: EDGE_BLOOM_RADIUS * dpr,
+			u_blurResolution: [bw, bh],
 		});
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
