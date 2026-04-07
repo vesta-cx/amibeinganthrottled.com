@@ -292,7 +292,7 @@ void main() {
   // Pass 2: Saturation boost in highlight areas
   float satBoost = clamp(rimTotal * u_specularIntensity * 2.4, 0.0, 1.0);
   float luma = dot(tinted, vec3(0.2126, 0.7152, 0.0722));
-  vec3 saturated = mix(vec3(luma), tinted, 1.0 + satBoost * 6.0);
+  vec3 saturated = max(vec3(0.0), mix(vec3(luma), tinted, 1.0 + satBoost * 6.0));
   tinted = mix(tinted, saturated, satBoost);
 
   // Edge overlay: blurred background with overlay blend near card edges.
