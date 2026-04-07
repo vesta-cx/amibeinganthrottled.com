@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { dev } from '$app/environment';
 	import { type FrameState, MAX_CLICKS } from '$lib/types';
 	import { NUM_BLOBS } from '$lib/blobs';
 	import { GLASS, LIGHTING, FROST, DITHER } from '$lib/constants';
@@ -11,6 +12,7 @@
 	import { createProgram, setUniforms } from '$lib/gl/program';
 	import { createFBO, resizeFBO, destroyFBO, type FBO } from '$lib/gl/fbo';
 	import { createBayerTexture } from '$lib/gl/bayer';
+	import { edgeBloom as debugEdgeBloom } from '$lib/debug';
 
 	interface Props {
 		frostHeight: number;
@@ -359,8 +361,9 @@
 			u_dropShadowAlpha: 0.0,
 			u_dropShadowBlur: LIGHTING.dropShadowBlur * dpr,
 			u_dropShadowOffset: [LIGHTING.dropShadowOffX * dpr, LIGHTING.dropShadowOffY * dpr],
-			u_edgeBloom: EDGE_BLOOM,
-			u_edgeBloomRadius: EDGE_BLOOM_RADIUS * dpr,
+			u_edgeBloom: dev ? debugEdgeBloom.intensity : EDGE_BLOOM,
+			u_edgeBloomRadius: (dev ? debugEdgeBloom.radius : EDGE_BLOOM_RADIUS) * dpr,
+			u_edgeGamma: dev ? debugEdgeBloom.gamma : 0.425,
 			u_blurResolution: [bw, bh],
 		});
 

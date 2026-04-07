@@ -36,6 +36,7 @@ uniform vec2  u_dropShadowOffset;  // drop shadow offset in px
 uniform float u_edgeBloom;         // edge bloom intensity (0.0–1.0)
 uniform float u_edgeBloomRadius;   // bloom falloff radius in px
 uniform vec2  u_blurResolution;   // blur FBO resolution (quarter viewport)
+uniform float u_edgeGamma;        // gamma boost for overlay blend layer
 
 // Map card-local UV (0-1 within card) to viewport UV (0-1 within FBO)
 vec2 cardToViewport(vec2 cardUV) {
@@ -327,7 +328,7 @@ void main() {
     blurred += n * (1.0 / 40.0); // ~6 levels of noise
 
     // Gamma-boost so more values cross the 0.5 overlay threshold
-    blurred = pow(max(blurred, vec3(0.0)), vec3(0.425));
+    blurred = pow(max(blurred, vec3(0.0)), vec3(u_edgeGamma));
 
     // Soft overlay with chroma boost
     vec3 mul = 2.0 * tinted * blurred;
