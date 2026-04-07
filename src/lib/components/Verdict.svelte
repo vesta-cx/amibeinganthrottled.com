@@ -116,8 +116,14 @@
 	.verdict {
 		margin: 0;
 		font-family: 'Fraunces', serif;
-		font-size: clamp(20px, 2.8vw, 28px);
+		font-size: 20px;
 		font-weight: 700;
 		line-height: 1.2;
+	}
+
+	@media (min-width: 640px) {
+		.verdict {
+			font-size: 28px;
+		}
 	}
 </style>

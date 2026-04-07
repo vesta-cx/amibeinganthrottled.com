@@ -42,7 +42,7 @@
 	<p class="text-xs font-semibold tracking-wider mb-1.5 leading-none" style="color:{subtextColor}">
 		{eyebrowLabels[state]}
 	</p>
-	<p class="font-['Fraunces',serif] text-[clamp(20px,2.8vw,28px)] leading-tight m-0 sm:whitespace-nowrap"
+	<p class="font-['Fraunces',serif] text-xl sm:text-[28px] leading-tight m-0 sm:whitespace-nowrap"
 		style="font-variation-settings:'WONK' 1,'SOFT' 0,'wght' 700"
 	>
 		{#each parts as part, i (part.unit)}{#if i > 0}{' '}<span style="color:{subtextColor}">{m.time_and({}, loc)}</span>{' '}{/if}<span class="inline-block whitespace-nowrap"><span class="font-bold" style="color:{accentColor}">{part.n}</span>{' '}<span style="color:{subtextColor}">{part.word}</span></span>{/each}

@@ -78,4 +78,4 @@
 	}
 </script>
 
-<p class="font-['Fraunces',serif] text-[clamp(14px,1.6vw,18px)] leading-snug">{text}</p>
+<p class="font-['Fraunces',serif] text-sm sm:text-lg leading-snug">{text}</p>
