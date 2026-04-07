@@ -19,20 +19,20 @@
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 
-	let gl: WebGLRenderingContext;
-	let ditherProg: WebGLProgram;
-	let caProg: WebGLProgram;
-	let blurProg: WebGLProgram;
-	let frostProg: WebGLProgram;
-	let bloomProg: WebGLProgram;
-	let bayerTex: WebGLTexture;
-	let quadBuf: WebGLBuffer;
+	let gl: WebGLRenderingContext | undefined;
+	let ditherProg: WebGLProgram | undefined;
+	let caProg: WebGLProgram | undefined;
+	let blurProg: WebGLProgram | undefined;
+	let frostProg: WebGLProgram | undefined;
+	let bloomProg: WebGLProgram | undefined;
+	let bayerTex: WebGLTexture | undefined;
+	let quadBuf: WebGLBuffer | undefined;
 
-	let ditherFBO: FBO;
-	let caFBO: FBO;
-	let blurFBO_A: FBO;
-	let blurFBO_B: FBO;
-	let frostFBO: FBO;
+	let ditherFBO: FBO | undefined;
+	let caFBO: FBO | undefined;
+	let blurFBO_A: FBO | undefined;
+	let blurFBO_B: FBO | undefined;
+	let frostFBO: FBO | undefined;
 
 	function getViewportSize(): { w: number; h: number } {
 		if (typeof window === 'undefined') return { w: 0, h: 0 };
@@ -89,19 +89,20 @@
 	}
 
 	function cleanupGL(): void {
+		// Only called after initGL succeeded — all handles are guaranteed assigned.
 		if (!gl) return;
-		destroyFBO(gl, ditherFBO);
-		destroyFBO(gl, caFBO);
-		destroyFBO(gl, blurFBO_A);
-		destroyFBO(gl, blurFBO_B);
-		destroyFBO(gl, frostFBO);
-		gl.deleteTexture(bayerTex);
-		gl.deleteBuffer(quadBuf);
-		gl.deleteProgram(ditherProg);
-		gl.deleteProgram(caProg);
-		gl.deleteProgram(blurProg);
-		gl.deleteProgram(frostProg);
-		gl.deleteProgram(bloomProg);
+		destroyFBO(gl, ditherFBO!);
+		destroyFBO(gl, caFBO!);
+		destroyFBO(gl, blurFBO_A!);
+		destroyFBO(gl, blurFBO_B!);
+		destroyFBO(gl, frostFBO!);
+		gl.deleteTexture(bayerTex ?? null);
+		gl.deleteBuffer(quadBuf ?? null);
+		gl.deleteProgram(ditherProg ?? null);
+		gl.deleteProgram(caProg ?? null);
+		gl.deleteProgram(blurProg ?? null);
+		gl.deleteProgram(frostProg ?? null);
+		gl.deleteProgram(bloomProg ?? null);
 	}
 
 	export function render(state: FrameState): void {

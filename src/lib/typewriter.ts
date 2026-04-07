@@ -37,7 +37,7 @@ export function createTypewriter(config?: {
 				text = text.slice(0, text.length - removed);
 				if (text.length === 0) {
 					phase = 'typing';
-					// Carry remainder into typing phase
+					accumulator = 0;
 				}
 			}
 		}
