@@ -8,6 +8,10 @@ uniform float u_radius;     // blur radius in pixels
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
+  if (u_radius < 0.5) {
+    gl_FragColor = vec4(texture2D(u_scene, uv).rgb, 1.0);
+    return;
+  }
   vec2 px = u_direction / u_resolution; // 1px step in blur direction
   float sigma = u_radius / 3.0;
   float denom = 2.0 * sigma * sigma;

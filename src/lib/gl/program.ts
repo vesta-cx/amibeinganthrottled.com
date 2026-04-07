@@ -50,7 +50,13 @@ export function createProgram(
 	fragSrc: string
 ): WebGLProgram {
 	const vertShader = compileShader(gl, gl.VERTEX_SHADER, vertSrc);
-	const fragShader = compileShader(gl, gl.FRAGMENT_SHADER, fragSrc);
+	let fragShader: WebGLShader;
+	try {
+		fragShader = compileShader(gl, gl.FRAGMENT_SHADER, fragSrc);
+	} catch (e) {
+		gl.deleteShader(vertShader);
+		throw e;
+	}
 
 	const program = gl.createProgram();
 	if (!program) {
