@@ -12,7 +12,7 @@
 	import { createProgram, setUniforms } from '$lib/gl/program';
 	import { createFBO, resizeFBO, destroyFBO, type FBO } from '$lib/gl/fbo';
 	import { createBayerTexture } from '$lib/gl/bayer';
-	import { edgeBloom as debugEdgeBloom } from '$lib/debug';
+	import { edgeBloom as debugEdgeBloom } from '$lib/debug.svelte';
 
 	interface Props {
 		frostHeight: number;
@@ -24,8 +24,8 @@
 
 	// GL state managed across mount/destroy
 	const CA_STRENGTH = 0.05;
-	const EDGE_BLOOM = 0.5;
-	const EDGE_BLOOM_RADIUS = 120.0;
+	const EDGE_BLOOM = 0.2;
+	const EDGE_BLOOM_RADIUS = 80.0;
 
 	let gl: WebGLRenderingContext | null = null;
 	let ditherProg: WebGLProgram | null = null;
@@ -363,7 +363,7 @@
 			u_dropShadowOffset: [LIGHTING.dropShadowOffX * dpr, LIGHTING.dropShadowOffY * dpr],
 			u_edgeBloom: dev ? debugEdgeBloom.intensity : EDGE_BLOOM,
 			u_edgeBloomRadius: (dev ? debugEdgeBloom.radius : EDGE_BLOOM_RADIUS) * dpr,
-			u_edgeGamma: dev ? debugEdgeBloom.gamma : 0.425,
+			u_edgeGamma: dev ? debugEdgeBloom.gamma : 0.5,
 			u_blurResolution: [bw, bh],
 		});
 

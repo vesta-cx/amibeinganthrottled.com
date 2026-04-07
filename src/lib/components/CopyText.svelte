@@ -2,6 +2,8 @@
 	import { createTypewriter } from '$lib/typewriter';
 	import { untrack } from 'svelte';
 	import type { ThrottleState } from '$lib/throttle';
+	import { dev } from '$app/environment';
+	import { typography } from '$lib/debug.svelte';
 
 	interface Props {
 		state: ThrottleState;
@@ -78,4 +80,16 @@
 	}
 </script>
 
-<p class="font-['Fraunces',serif] text-sm sm:text-lg leading-snug">{text}</p>
+<p class="copy-text font-['Fraunces',serif] leading-snug" style={dev ? `--c-base: ${typography.copy.size}rem; --c-sm: ${typography.copy.sizeSm}rem; --c-md: ${typography.copy.sizeMd}rem; --c-lg: ${typography.copy.sizeLg}rem; --c-xl: ${typography.copy.sizeXl}rem; --c-2xl: ${typography.copy.size2xl}rem` : ''}>{text}</p>
+
+<style>
+	.copy-text {
+		font-style: italic;
+		font-size: var(--c-base, 1rem);
+	}
+	@media (min-width: 640px)  { .copy-text { font-size: var(--c-sm, 0.875rem); } }
+	@media (min-width: 768px)  { .copy-text { font-size: var(--c-md, 0.875rem); } }
+	@media (min-width: 1024px) { .copy-text { font-size: var(--c-lg, 1rem); } }
+	@media (min-width: 1280px) { .copy-text { font-size: var(--c-xl, 1.125rem); } }
+	@media (min-width: 1536px) { .copy-text { font-size: var(--c-2xl, 1.25rem); } }
+</style>
