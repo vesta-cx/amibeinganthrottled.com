@@ -40,7 +40,7 @@
 	function initGL() {
 		const ctx = canvas.getContext('webgl', {
 			alpha: true,
-			premultipliedAlpha: false,
+			premultipliedAlpha: true,
 			antialias: false,
 		});
 		if (!ctx) throw new Error('WebGL not supported');
