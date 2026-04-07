@@ -55,9 +55,20 @@
 		return () => cancelAnimationFrame(frame);
 	});
 
+	// displayedState tracks which verdict's accent positions apply to the text on screen.
+	// It lags behind throttleState: stays on the old state while the typewriter is deleting,
+	// and advances to throttleState only when typing begins (deletion finished).
+	let displayedState: ThrottleState = $state(throttleState);
+
+	$effect(() => {
+		if (phase === 'typing') {
+			displayedState = throttleState;
+		}
+	});
+
 	// Split displayed text to color the accent portion
 	const parts = $derived.by(() => {
-		const v = verdicts[throttleState];
+		const v = verdicts[displayedState];
 		const t = text;
 		const beforeLen = v[0].length;
 		const accentLen = v[1].length;
