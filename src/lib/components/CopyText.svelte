@@ -62,16 +62,14 @@
 		return () => clearInterval(ticker);
 	});
 
-	export function startDeleting(): void {
-		typewriter.startDeleting();
-	}
-
 	export function startTyping(): void {
 		if (!started) {
 			started = true;
-			// First call: set target from the pre-selected pool index
+			// First call: set target from the pre-selected pool index.
+			// Clamp index — pool may have shrunk since the effect set currentIndex.
 			const pool = strings;
 			if (pool.length > 0) {
+				currentIndex = Math.min(currentIndex, pool.length - 1);
 				typewriter.setTarget(pool[currentIndex]);
 			}
 		} else {
