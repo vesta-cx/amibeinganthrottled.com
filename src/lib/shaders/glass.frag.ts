@@ -130,6 +130,41 @@ void main() {
 
   // Antialiased edge: smooth alpha over 1.5px
   float alpha = 1.0 - smoothstep(-1.5, 0.5, dist);
+
+  // Outer edge bloom: bright background bleeds outward past the card boundary
+  // Uses the same gaussian blur + screen blend + luminance gating as inner bloom
+  float outerBloom = smoothstep(u_edgeBloomRadius, 0.0, dist) * u_edgeBloom;
+  if (alpha < 0.001 && outerBloom > 0.001) {
+    vec2 bloomTexel = 1.0 / u_sceneResolution;
+    float radius = outerBloom * 32.0;
+    float sigma = radius / 3.0;
+    float denom = 2.0 * sigma * sigma;
+    vec3 bloomCol = vec3(0.0);
+    float tw = 0.0;
+    for (int i = -4; i <= 4; i++) {
+      float fi = float(i);
+      float w = exp(-(fi * fi) / denom);
+      bloomCol += texture2D(u_blurredScene, vpUV + vec2(fi, 0.0) * bloomTexel * radius).rgb * w;
+      tw += w;
+    }
+    for (int i = -4; i <= 4; i++) {
+      if (i == 0) continue;
+      float fi = float(i);
+      float w = exp(-(fi * fi) / denom);
+      bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, fi) * bloomTexel * radius).rgb * w;
+      tw += w;
+    }
+    bloomCol /= tw;
+    float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
+    float brightGate = smoothstep(0.15, 0.5, bloomLum);
+    float gated = outerBloom * brightGate;
+    // Combine with drop shadow: bloom adds light, shadow adds dark
+    vec3 bloomOut = bloomCol * gated;
+    float bloomAlpha = max(shadowAlpha, gated * bloomLum);
+    gl_FragColor = vec4(bloomOut + vec3(0.0) * shadowAlpha, bloomAlpha);
+    return;
+  }
+
   if (alpha < 0.001) {
     // Outside glass: only show drop shadow (original behavior)
     if (shadowAlpha > 0.001) {
