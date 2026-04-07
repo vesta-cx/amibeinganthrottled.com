@@ -8,7 +8,6 @@
 	import { CA_FRAG } from '$lib/shaders/ca.frag';
 	import { BLUR_FRAG } from '$lib/shaders/blur.frag';
 	import { GLASS_FRAG } from '$lib/shaders/glass.frag';
-	import { BLOOM_FRAG } from '$lib/shaders/bloom.frag';
 	import { createProgram, setUniforms } from '$lib/gl/program';
 	import { createFBO, resizeFBO, destroyFBO, type FBO } from '$lib/gl/fbo';
 	import { createBayerTexture } from '$lib/gl/bayer';
@@ -22,20 +21,19 @@
 	let canvas: HTMLCanvasElement;
 
 	// GL state managed across mount/destroy
-	const CA_STRENGTH = 0.1;
-	const BLOOM_INTENSITY = 0.15;
+	const CA_STRENGTH = 0.05;
+	const EDGE_BLOOM = 0.4;
+	const EDGE_BLOOM_RADIUS = 120.0;
 
 	let gl: WebGLRenderingContext | null = null;
 	let ditherProg: WebGLProgram | null = null;
 	let caProg: WebGLProgram | null = null;
 	let blurProg: WebGLProgram | null = null;
 	let glassProg: WebGLProgram | null = null;
-	let bloomProg: WebGLProgram | null = null;
 	let sceneFBO: FBO | null = null;
 	let blurFBO_A: FBO | null = null;
 	let blurFBO_B: FBO | null = null;
 	let caFBO: FBO | null = null;
-	let glassFBO: FBO | null = null;
 	let bayerTex: WebGLTexture | null = null;
 	let quadBuffer: WebGLBuffer | null = null;
 
@@ -53,10 +51,11 @@
 		caProg = createProgram(gl, FULLSCREEN_QUAD_VERT, CA_FRAG);
 		blurProg = createProgram(gl, FULLSCREEN_QUAD_VERT, BLUR_FRAG);
 		glassProg = createProgram(gl, FULLSCREEN_QUAD_VERT, GLASS_FRAG);
-		bloomProg = createProgram(gl, FULLSCREEN_QUAD_VERT, BLOOM_FRAG);
 
 		// Fullscreen quad geometry
-		quadBuffer = gl.createBuffer();
+		const buf = gl.createBuffer();
+		if (!buf) throw new Error('Failed to create buffer');
+		quadBuffer = buf;
 		gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
 		gl.bufferData(
 			gl.ARRAY_BUFFER,
@@ -65,7 +64,7 @@
 		);
 
 		// Bind a_position for all programs
-		for (const prog of [ditherProg, caProg, blurProg, glassProg, bloomProg]) {
+		for (const prog of [ditherProg, caProg, blurProg, glassProg]) {
 			const loc = gl.getAttribLocation(prog, 'a_position');
 			if (loc >= 0) {
 				gl.enableVertexAttribArray(loc);
@@ -89,7 +88,6 @@
 		blurFBO_A = createFBO(gl, 2, 2);
 		blurFBO_B = createFBO(gl, 2, 2);
 		caFBO = createFBO(gl, 2, 2);
-		glassFBO = createFBO(gl, 2, 2);
 
 		// Clear to transparent so the card isn't white before the first render
 		gl.clearColor(0, 0, 0, 0);
@@ -103,7 +101,6 @@
 		if (blurFBO_A) destroyFBO(gl, blurFBO_A);
 		if (blurFBO_B) destroyFBO(gl, blurFBO_B);
 		if (caFBO) destroyFBO(gl, caFBO);
-		if (glassFBO) destroyFBO(gl, glassFBO);
 
 		if (bayerTex) gl.deleteTexture(bayerTex);
 		if (quadBuffer) gl.deleteBuffer(quadBuffer);
@@ -111,25 +108,22 @@
 		if (caProg) gl.deleteProgram(caProg);
 		if (blurProg) gl.deleteProgram(blurProg);
 		if (glassProg) gl.deleteProgram(glassProg);
-		if (bloomProg) gl.deleteProgram(bloomProg);
 
 		gl = null;
 		ditherProg = null;
 		caProg = null;
 		blurProg = null;
 		glassProg = null;
-		bloomProg = null;
 		sceneFBO = null;
 		blurFBO_A = null;
 		blurFBO_B = null;
 		caFBO = null;
-		glassFBO = null;
 		bayerTex = null;
 		quadBuffer = null;
 	}
 
 	export function render(state: FrameState): void {
-		if (!gl || !ditherProg || !caProg || !blurProg || !glassProg || !bloomProg || !sceneFBO || !blurFBO_A || !blurFBO_B || !caFBO || !glassFBO || !bayerTex) return;
+		if (!gl || !ditherProg || !caProg || !blurProg || !glassProg || !sceneFBO || !blurFBO_A || !blurFBO_B || !caFBO || !bayerTex || !quadBuffer) return;
 
 		const dpr = window.devicePixelRatio || 1;
 		const w = canvas.clientWidth;
@@ -160,7 +154,6 @@
 		resizeFBO(gl, caFBO, vpW, vpH);
 		resizeFBO(gl, blurFBO_A, bw, bh);
 		resizeFBO(gl, blurFBO_B, bw, bh);
-		resizeFBO(gl, glassFBO, pw, ph);
 
 		// Card rect in normalized viewport coords
 		const cardRect = canvas.getBoundingClientRect();
@@ -297,8 +290,8 @@
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-		// ── Pass 5: Glass refraction -> glassFBO ──
-		gl.bindFramebuffer(gl.FRAMEBUFFER, glassFBO.framebuffer);
+		// ── Pass 5: Glass refraction -> screen ──
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(0, 0, pw, ph);
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -367,35 +360,8 @@
 			u_dropShadowAlpha: LIGHTING.dropShadowAlpha,
 			u_dropShadowBlur: LIGHTING.dropShadowBlur * dpr,
 			u_dropShadowOffset: [LIGHTING.dropShadowOffX * dpr, LIGHTING.dropShadowOffY * dpr],
-		});
-
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-		gl.disable(gl.BLEND);
-
-		// ── Pass 6: Bloom composite (glassFBO + blurred scene -> screen) ──
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-		gl.viewport(0, 0, pw, ph);
-		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-		gl.clearColor(0, 0, 0, 0);
-		gl.clear(gl.COLOR_BUFFER_BIT);
-		gl.useProgram(bloomProg);
-
-		const bloomPosLoc = gl.getAttribLocation(bloomProg, 'a_position');
-		gl.enableVertexAttribArray(bloomPosLoc);
-		gl.vertexAttribPointer(bloomPosLoc, 2, gl.FLOAT, false, 0, 0);
-
-		gl.activeTexture(gl.TEXTURE6);
-		gl.bindTexture(gl.TEXTURE_2D, glassFBO.texture);
-		gl.uniform1i(gl.getUniformLocation(bloomProg, 'u_scene'), 6);
-
-		gl.activeTexture(gl.TEXTURE7);
-		gl.bindTexture(gl.TEXTURE_2D, blurFBO_B.texture);
-		gl.uniform1i(gl.getUniformLocation(bloomProg, 'u_bloom'), 7);
-
-		setUniforms(gl, bloomProg, {
-			u_resolution: [pw, ph],
-			u_intensity: BLOOM_INTENSITY,
+			u_edgeBloom: EDGE_BLOOM,
+			u_edgeBloomRadius: EDGE_BLOOM_RADIUS * dpr,
 		});
 
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

@@ -34,6 +34,8 @@ uniform float u_shadowIntensity;   // inner edge shadow strength
 uniform float u_dropShadowAlpha;   // drop shadow opacity
 uniform float u_dropShadowBlur;    // drop shadow blur width in px
 uniform vec2  u_dropShadowOffset;  // drop shadow offset in px
+uniform float u_edgeBloom;         // edge bloom intensity (0.0–1.0)
+uniform float u_edgeBloomRadius;   // bloom falloff radius in px
 
 // Map card-local UV (0-1 within card) to viewport UV (0-1 within FBO)
 vec2 cardToViewport(vec2 cardUV) {
@@ -129,7 +131,7 @@ void main() {
   // Antialiased edge: smooth alpha over 1.5px
   float alpha = 1.0 - smoothstep(-1.5, 0.5, dist);
   if (alpha < 0.001) {
-    // Outside glass: only show drop shadow
+    // Outside glass: only show drop shadow (original behavior)
     if (shadowAlpha > 0.001) {
       gl_FragColor = vec4(0.0, 0.0, 0.0, shadowAlpha);
     } else {
@@ -287,6 +289,27 @@ void main() {
   float luma = dot(tinted, vec3(0.2126, 0.7152, 0.0722));
   vec3 saturated = mix(vec3(luma), tinted, 1.0 + satBoost * 6.0);
   tinted = mix(tinted, saturated, satBoost);
+
+  // Inner edge bloom: screen-blend blurred background into card edges
+  // Only brightens where the outside is actually bright — dark stays dark
+  // Samples are spread wider near the edge for a soft, diffuse bleed
+  float innerBloom = smoothstep(-u_edgeBloomRadius, 0.0, dist) * u_edgeBloom;
+  if (innerBloom > 0.001) {
+    // Blur kernel: 5-tap cross pattern, spread scales with proximity to edge
+    vec2 bloomTexel = 1.0 / u_sceneResolution;
+    float spread = innerBloom * 12.0; // wider blur near edge
+    vec3 bloomCol = texture2D(u_blurredScene, vpUV).rgb * 0.4;
+    bloomCol += texture2D(u_blurredScene, vpUV + vec2(spread, 0.0) * bloomTexel).rgb * 0.15;
+    bloomCol += texture2D(u_blurredScene, vpUV - vec2(spread, 0.0) * bloomTexel).rgb * 0.15;
+    bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, spread) * bloomTexel).rgb * 0.15;
+    bloomCol += texture2D(u_blurredScene, vpUV - vec2(0.0, spread) * bloomTexel).rgb * 0.15;
+    // Gate by luminance: only bleed where the background is genuinely bright
+    float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
+    float brightGate = smoothstep(0.15, 0.5, bloomLum);
+    float gated = innerBloom * brightGate;
+    // Screen blend: only lifts bright areas, leaves dark untouched
+    tinted = 1.0 - (1.0 - tinted) * (1.0 - bloomCol * gated);
+  }
 
   // Output with alpha for AA edge blending (canvas is transparent outside)
   gl_FragColor = vec4(tinted, alpha);
