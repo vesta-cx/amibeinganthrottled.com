@@ -321,15 +321,27 @@ void main() {
       tw += w;
     }
     blurred /= tw;
-    // Gamma-boost the blurred sample so more values cross the 0.5 threshold.
-    // Without this, the pre-blurred quarter-res averages sit below 0.5 and
-    // overlay only ever multiplies (darkens). Gamma 0.5 lifts midtones.
-    blurred = pow(blurred, vec3(0.4));
+
+    // Noise dithering: break color banding with per-pixel value noise
+    float n = hash(gl_FragCoord.xy) - 0.5; // [-0.5, 0.5]
+    blurred += n * (1.0 / 64.0); // ~4 levels of noise
+
+    // Gamma-boost so more values cross the 0.5 overlay threshold
+    blurred = pow(max(blurred, vec3(0.0)), vec3(0.4));
+
     // Overlay blend keyed on the (gamma-boosted) blend layer
     vec3 ov;
     ov.r = blurred.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
     ov.g = blurred.g < 0.5 ? 2.0 * tinted.g * blurred.g : 1.0 - 2.0 * (1.0 - tinted.g) * (1.0 - blurred.g);
     ov.b = blurred.b < 0.5 ? 2.0 * tinted.b * blurred.b : 1.0 - 2.0 * (1.0 - tinted.b) * (1.0 - blurred.b);
+
+    // Saturate the brightened areas — boost chroma where overlay lifts
+    float ovLum = dot(ov, vec3(0.2126, 0.7152, 0.0722));
+    float baseLum = dot(tinted, vec3(0.2126, 0.7152, 0.0722));
+    float lift = max(ovLum - baseLum, 0.0); // how much brighter the overlay is
+    vec3 saturatedOv = mix(vec3(ovLum), ov, 1.0 + lift * 3.0); // push saturation proportional to lift
+    ov = mix(ov, saturatedOv, smoothstep(0.0, 0.2, lift));
+
     tinted = mix(tinted, ov, edgeAlpha);
   }
 
