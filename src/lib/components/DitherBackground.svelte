@@ -14,7 +14,7 @@
 
 	const OVERFLOW = FROST.noiseScale;
 	const BLUR_SCALE = 0.25;
-	const CA_STRENGTH = 0.1;
+	const CA_STRENGTH = 0.05;
 	const BLOOM_INTENSITY = 0.15;
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
