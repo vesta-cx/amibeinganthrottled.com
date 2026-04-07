@@ -84,7 +84,7 @@
 	let statusBarHeight = $state(0);
 	let cardHeight = $state(1);
 	const frostHeight = $derived(
-		cardHeight > 0 ? 1 - statusBarHeight / cardHeight : 0,
+		cardHeight > 0 ? statusBarHeight / cardHeight : 0,
 	);
 
 	// ── Color transitions ──
@@ -257,7 +257,7 @@
 
 	<div
 		class="relative z-10"
-		style="width: min(100vw - 2rem, 80rem); height: min(100dvh - 2rem, 32rem);"
+		style="width: min(100vw - 2rem, 80rem); height: min(100dvh - 2rem, 45rem);"
 		bind:clientHeight={cardHeight}
 	>
 		<GlassCard bind:this={cardRef} {frostHeight} />
