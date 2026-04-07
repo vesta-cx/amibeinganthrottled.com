@@ -30,7 +30,6 @@ uniform vec2  u_lightDir;          // normalized light direction (from mouse)
 uniform vec2  u_lightPos;          // mouse position in card-local UV (0-1)
 uniform float u_specularIntensity; // specular highlight strength
 uniform float u_specularSize;      // specular tightness (exponent)
-uniform float u_shadowIntensity;   // inner edge shadow strength
 uniform float u_dropShadowAlpha;   // drop shadow opacity
 uniform float u_dropShadowBlur;    // drop shadow blur width in px
 uniform vec2  u_dropShadowOffset;  // drop shadow offset in px
@@ -294,41 +293,40 @@ void main() {
   vec3 saturated = mix(vec3(luma), tinted, 1.0 + satBoost * 6.0);
   tinted = mix(tinted, saturated, satBoost);
 
-  // Edge bloom: gaussian-blurred background screen-blended near card edges.
-  // Only activates within u_edgeBloomRadius of the SDF boundary — blobs in
-  // the card interior don't bloom, only those near the edge bleed inward.
+  // Edge overlay: heavily blurred background sample with overlay blend.
+  // Replaces both edge darkening and edge bloom with a single effect —
+  // overlay naturally darkens dark areas and lifts bright ones.
+  // Quadratic alpha falloff from the SDF boundary into the card interior.
   float edgeLinear = smoothstep(-u_edgeBloomRadius, 0.0, dist);
-  float edgeProximity = edgeLinear * edgeLinear * u_edgeBloom; // quadratic falloff
-  if (edgeProximity > 0.001) {
+  float edgeAlpha = edgeLinear * edgeLinear * u_edgeBloom; // quadratic falloff
+  if (edgeAlpha > 0.001) {
     vec2 bloomTexel = 1.0 / u_sceneResolution;
-    float radius = edgeProximity * 60.0;
+    float radius = u_edgeBloomRadius * 0.5;
     float sigma = radius / 3.0;
     float denom = 2.0 * sigma * sigma;
-    vec3 bloomCol = vec3(0.0);
+    vec3 blurred = vec3(0.0);
     float tw = 0.0;
     // Separable gaussian: 17-tap H + 16-tap V (shared center)
     for (int i = -8; i <= 8; i++) {
       float fi = float(i);
       float w = exp(-(fi * fi) / denom);
-      bloomCol += texture2D(u_blurredScene, vpUV + vec2(fi, 0.0) * bloomTexel * radius).rgb * w;
+      blurred += texture2D(u_blurredScene, vpUV + vec2(fi, 0.0) * bloomTexel * radius).rgb * w;
       tw += w;
     }
     for (int i = -8; i <= 8; i++) {
       if (i == 0) continue;
       float fi = float(i);
       float w = exp(-(fi * fi) / denom);
-      bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, fi) * bloomTexel * radius).rgb * w;
+      blurred += texture2D(u_blurredScene, vpUV + vec2(0.0, fi) * bloomTexel * radius).rgb * w;
       tw += w;
     }
-    bloomCol /= tw;
-    float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
-    float brightGate = smoothstep(0.15, 0.5, bloomLum);
-    float gated = edgeProximity * brightGate;
-    // First undo edge darkening where bloom is active, then screen blend.
-    // Lift tinted toward the undarkened refracted color proportional to bloom,
-    // so the screen blend has a clean base to work with.
-    vec3 undarkened = mix(tinted, bloomCol * 0.5 + tinted * 0.5, gated);
-    tinted = 1.0 - (1.0 - undarkened) * (1.0 - bloomCol * gated);
+    blurred /= tw;
+    // Overlay blend: 2*base*blend when dark, 1-2*(1-base)*(1-blend) when bright
+    vec3 overlay;
+    overlay.r = tinted.r < 0.5 ? 2.0 * tinted.r * blurred.r : 1.0 - 2.0 * (1.0 - tinted.r) * (1.0 - blurred.r);
+    overlay.g = tinted.g < 0.5 ? 2.0 * tinted.g * blurred.g : 1.0 - 2.0 * (1.0 - tinted.g) * (1.0 - blurred.g);
+    overlay.b = tinted.b < 0.5 ? 2.0 * tinted.b * blurred.b : 1.0 - 2.0 * (1.0 - tinted.b) * (1.0 - blurred.b);
+    tinted = mix(tinted, overlay, edgeAlpha);
   }
 
   // Output with alpha for AA edge blending (canvas is transparent outside)

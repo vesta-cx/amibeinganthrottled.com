@@ -356,7 +356,6 @@
 			u_lightPos: [lightPosU, lightPosV],
 			u_specularIntensity: LIGHTING.specularIntensity,
 			u_specularSize: LIGHTING.specularSize,
-			u_shadowIntensity: LIGHTING.shadowIntensity,
 			u_dropShadowAlpha: LIGHTING.dropShadowAlpha,
 			u_dropShadowBlur: LIGHTING.dropShadowBlur * dpr,
 			u_dropShadowOffset: [LIGHTING.dropShadowOffX * dpr, LIGHTING.dropShadowOffY * dpr],
