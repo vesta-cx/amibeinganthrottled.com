@@ -244,7 +244,7 @@
 		y:  Math.random(),
 		vx: (Math.random() - 0.5) * 0.003,
 		vy: (Math.random() - 0.5) * 0.003,
-		r:  0.18 + Math.random() * 0.1,
+		r:  0.12 + Math.random() * 0.06,
 	}));
 
 	// FBM terrain — layered sine approximation (same as v18)
@@ -262,14 +262,18 @@
 
 	// Field computation shared between both canvases
 	const computeField = (nx: number, ny: number, aspect: number, t: number, cb: number, cw: number): number => {
-		// ── Metaballs ──
+		// ── Metaballs (organic wobble) ──
 		let meta = 0;
-		for (const p of points) {
+		for (let i = 0; i < points.length; i++) {
+			const p = points[i];
 			const dx = (nx - p.x) * aspect;
 			const dy = ny - p.y;
-			meta += (p.r * p.r) / (dx*dx + dy*dy + 0.0005);
+			const angle = Math.atan2(dy, dx);
+			const wobble = 1 + 0.25 * Math.sin(angle * 3 + t * 1.1 + i * 2.1) + 0.15 * Math.sin(angle * 5 - t * 0.8 + i * 1.3);
+			const d2 = (dx*dx + dy*dy) * wobble;
+			meta += (p.r * p.r) / (d2 + 0.0005);
 		}
-		{ const dx = (nx - mouseX)*aspect; const dy = ny-mouseY; meta += (0.2*0.2)/(dx*dx+dy*dy+0.0005); }
+		{ const dx = (nx - mouseX)*aspect; const dy = ny-mouseY; const angle = Math.atan2(dy, dx); const wobble = 1 + 0.25 * Math.sin(angle * 3 + t * 1.1 + 5.7) + 0.15 * Math.sin(angle * 5 - t * 0.8 + 3.2); const d2 = (dx*dx + dy*dy) * wobble; meta += (0.12*0.12)/(d2+0.0005); }
 		const metaI = Math.min(meta / 2.5, 1);
 
 		// ── Voronoi ──
@@ -288,22 +292,24 @@
 		const tdx = (nx - mouseX) * aspect;
 		const tdy = ny - mouseY;
 		const tDist2 = tdx*tdx + tdy*tdy;
-		terrainH = Math.min(1, terrainH + 0.4 * Math.exp(-tDist2 / (2 * 0.05)));
+		terrainH = Math.min(1, terrainH + 0.5 * Math.exp(-tDist2 / (2 * 0.14)));
 		const terrainI = terrainH;
 
 		// ── Aurora (weekend) ──
 		const mdx = (nx - mouseX)*aspect; const mdy = ny - mouseY;
-		const mDist = Math.sqrt(mdx*mdx + mdy*mdy);
-		const mWarp = 0.3 / (mDist + 0.3);
+		const mDist2 = mdx*mdx + mdy*mdy;
+		const mDist = Math.sqrt(mDist2);
+		const mWarp = 0.8 / (mDist + 0.25);
 		const aurora =
 			Math.sin(ny*12 + t*0.8 + Math.sin(nx*6 + t*0.3)*2 + mWarp)*0.5 +
-			Math.sin(ny*8  - t*0.5 + Math.cos(nx*4 + t*0.7)*1.5)*0.3 +
+			Math.sin(ny*8  - t*0.5 + Math.cos(nx*4 + t*0.7)*1.5 + mWarp*0.5)*0.3 +
 			Math.sin((nx+ny)*10 + t*0.4)*0.2;
-		const auroraI = Math.max(0, Math.min(1, (aurora + 0.5) * 0.8));
+		const mGlow = 0.35 * Math.exp(-mDist2 / (2 * 0.12));
+		const auroraI = Math.max(0, Math.min(1, (aurora + 0.5) * 0.8 + mGlow));
 
 		// cb: 0=metaballs (clear), 1=voronoi+terrain (throttled)
 		// cw: 0=off, 1=aurora (weekend)
-		const throttledI = voroI * 0.3 + terrainI * 0.7; // voronoi + FBM cracked-earth blend
+		const throttledI = voroI * 0.4 + terrainI * 0.6; // voronoi + FBM cracked-earth blend
 		return (metaI*(1-cb) + throttledI*cb)*(1-cw) + auroraI*cw;
 	};
 
@@ -373,7 +379,7 @@
 		if (!bgCanvas) return;
 		const ctx = bgCanvas.getContext('2d')!;
 		const CELL_W = 14, CELL_H = 22; // coarser grid for bg — smaller than card, larger than sharp
-		let af: number;
+		let af: number, t = 0;
 
 		const draw = () => {
 			const w = bgCanvas!.clientWidth, h = bgCanvas!.clientHeight;
@@ -388,7 +394,7 @@
 			ctx.fillStyle = bgC; ctx.fillRect(0,0,w,h);
 			ctx.font = `${CELL_H-3}px 'Space Mono', monospace`;
 			ctx.textBaseline = 'top';
-			// bg uses same t as main canvas would, but we don't have t here — use a shared ref
+			t += 0.016;
 			for (let row=0;row<rows;row++) {
 				for (let col2=0;col2<cols;col2++) {
 					// Account for the -100px inset: canvas origin is 100px left/above the viewport
@@ -396,7 +402,7 @@
 					const screenY = (row+0.5)/rows * h;
 					const nx = (screenX - 100) / pageW;
 					const ny = (screenY - 100) / pageH;
-					const intensity = computeField(nx, ny, aspect, 0, cb, cw);
+					const intensity = computeField(nx, ny, aspect, t, cb, cw);
 					const ch = ASCII_RAMP[Math.floor(intensity*(ASCII_RAMP.length-1))];
 					if (ch === ' ') continue;
 					const a = Math.pow(intensity,0.5) * 0.85;
@@ -652,7 +658,7 @@
 	}
 
 	.verdict {
-		margin: 0 0 14px;
+		margin: 0;
 		font-family: 'Fraunces', serif;
 		font-size: clamp(20px, 2.8vw, 28px);
 		line-height: 1.1;
@@ -676,7 +682,7 @@
 	.bar-right {
 		display: flex;
 		flex-direction: column;
-		justify-content: space-between;
+		justify-content: flex-end;
 		align-items: flex-end;
 		gap: 0;
 		flex-shrink: 0;
@@ -689,9 +695,8 @@
 		font-size: 12px;
 		font-weight: 600;
 		letter-spacing: 0.04em;
-		margin: 0 0 4px;
+		margin: 0 0 6px;
 		line-height: 1;
-		/* matches .question exactly */
 	}
 
 	.prose-timer {
