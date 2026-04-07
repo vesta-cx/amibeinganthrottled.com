@@ -297,7 +297,8 @@ void main() {
   // Edge bloom: gaussian-blurred background screen-blended near card edges.
   // Only activates within u_edgeBloomRadius of the SDF boundary — blobs in
   // the card interior don't bloom, only those near the edge bleed inward.
-  float edgeProximity = smoothstep(-u_edgeBloomRadius, 0.0, dist) * u_edgeBloom;
+  float edgeLinear = smoothstep(-u_edgeBloomRadius, 0.0, dist);
+  float edgeProximity = edgeLinear * edgeLinear * u_edgeBloom; // quadratic falloff
   if (edgeProximity > 0.001) {
     vec2 bloomTexel = 1.0 / u_sceneResolution;
     float radius = edgeProximity * 60.0;
