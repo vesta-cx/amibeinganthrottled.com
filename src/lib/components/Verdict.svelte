@@ -2,21 +2,27 @@
 	import type { ThrottleState } from '$lib/throttle';
 	import type { TypewriterPhase } from '$lib/typewriter';
 	import { createTypewriter } from '$lib/typewriter';
+	import * as m from '$lib/paraglide/messages';
+
+	type Locale = 'en' | 'nl' | 'de' | 'fr' | 'es' | 'it';
 
 	interface Props {
 		state: ThrottleState;
+		locale: string;
 		accentColor: string;
 		subtextColor: string;
 		phase?: TypewriterPhase;
 	}
 
-	let { state: throttleState, accentColor, subtextColor, phase = $bindable('idle') }: Props = $props();
+	let { state: throttleState, locale, accentColor, subtextColor, phase = $bindable('idle') }: Props = $props();
 
-	const verdicts: Record<ThrottleState, [string, string, string]> = {
-		throttled: ['Sadly, ', 'yes', '.'],
-		clear: ['No, ', "you're good", '!'],
-		weekend: ["It's the ", 'weekend', '!'],
-	};
+	const loc = $derived({ locale: locale as Locale });
+
+	const verdicts = $derived.by((): Record<ThrottleState, [string, string, string]> => ({
+		throttled: [m.verdict_throttled_before({}, loc), m.verdict_throttled_accent({}, loc), m.verdict_throttled_after({}, loc)],
+		clear: [m.verdict_clear_before({}, loc), m.verdict_clear_accent({}, loc), m.verdict_clear_after({}, loc)],
+		weekend: [m.verdict_weekend_before({}, loc), m.verdict_weekend_accent({}, loc), m.verdict_weekend_after({}, loc)],
+	}));
 
 	const tw = createTypewriter();
 
@@ -75,7 +81,7 @@
 </script>
 
 <div class="verdict-group">
-	<p class="question" style="color: {subtextColor}">Am I Being Anthrottled?</p>
+	<p class="question" style="color: {subtextColor}">{m.question({}, loc)}</p>
 	<h1 class="verdict" style="color: {subtextColor}">{parts.before}<span style="color: {accentColor}">{parts.accent}</span>{parts.after}</h1>
 </div>
 

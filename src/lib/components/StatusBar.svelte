@@ -48,12 +48,12 @@
 >
 	<!-- Mobile: Verdict first, Desktop: bottom-left -->
 	<div class="order-1 sm:order-3 sm:col-start-1 sm:row-start-2">
-		<Verdict state={throttleState} {accentColor} {subtextColor} bind:phase={verdictPhase} />
+		<Verdict state={throttleState} {locale} {accentColor} {subtextColor} bind:phase={verdictPhase} />
 	</div>
 
 	<!-- Mobile: CountdownTimer second, Desktop: bottom-right -->
 	<div class="order-2 sm:order-4 sm:col-start-2 sm:row-start-2 sm:text-right">
-		<CountdownTimer {msUntilTransition} state={throttleState} {accentColor} {subtextColor} />
+		<CountdownTimer {msUntilTransition} state={throttleState} {locale} {accentColor} {subtextColor} />
 	</div>
 
 	<!-- Mobile: CopyText third, Desktop: top-left -->
