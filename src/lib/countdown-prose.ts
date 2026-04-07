@@ -17,6 +17,30 @@ export interface UnitWords {
 	and: string
 }
 
+export function unitWordsFromMessages(m: {
+	time_day: string
+	time_days: string
+	time_hour: string
+	time_hours: string
+	time_minute: string
+	time_minutes: string
+	time_second: string
+	time_seconds: string
+	time_and: string
+}): UnitWords {
+	return {
+		day: m.time_day,
+		days: m.time_days,
+		hour: m.time_hour,
+		hours: m.time_hours,
+		minute: m.time_minute,
+		minutes: m.time_minutes,
+		second: m.time_second,
+		seconds: m.time_seconds,
+		and: m.time_and
+	}
+}
+
 export const DEFAULT_UNIT_WORDS: UnitWords = {
 	day: 'day',
 	days: 'days',
