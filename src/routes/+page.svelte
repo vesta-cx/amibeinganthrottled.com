@@ -44,7 +44,12 @@
 	}
 
 	// ── Locale ──
-	const locale = $derived(getLocale());
+	// getLocale() is not reactive — derive from URL path which Paraglide controls
+	const locale = $derived.by(() => {
+		const pathLocale = page.url.pathname.split('/')[1];
+		const validLocales = ['en', 'nl', 'de', 'fr', 'es', 'it'];
+		return validLocales.includes(pathLocale) ? pathLocale : 'en';
+	});
 
 	function handleLocaleSelect(loc: string) {
 		setLocale(loc as 'en', { reload: false });
