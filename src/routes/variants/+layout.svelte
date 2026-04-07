@@ -25,22 +25,7 @@
 
 	const STATES: (ThrottleState | 'live')[] = ['live', 'throttled', 'clear', 'weekend']
 	const VARIANTS = Array.from({ length: 21 }, (_, i) => i + 1)
-
-	const FONTS = [
-		{ name: 'Fraunces',       css: "'Fraunces Variable', serif" },
-		{ name: 'Quicksand',      css: "'Quicksand Variable', sans-serif" },
-		{ name: 'Outfit',         css: "'Outfit Variable', sans-serif" },
-		{ name: 'Lexend',         css: "'Lexend Variable', sans-serif" },
-		{ name: 'Nunito',         css: "'Nunito Variable', sans-serif" },
-		{ name: 'Space Grotesk',  css: "'Space Grotesk Variable', sans-serif" },
-		{ name: 'Sora',           css: "'Sora Variable', sans-serif" },
-		{ name: 'DM Sans',        css: "'DM Sans Variable', sans-serif" },
-		{ name: 'Inter',          css: "'Inter', sans-serif" },
-		{ name: 'Azeret Mono',    css: "'Azeret Mono', monospace" },
-		{ name: 'JetBrains Mono', css: "'JetBrains Mono', monospace" },
-		{ name: 'Space Mono',     css: "'Space Mono', monospace" },
-		{ name: 'Geist Mono',     css: "'Geist Mono', monospace" },
-	]
+	const GLASS_DEBUG_LABELS = ['Dither', 'Image', 'Fine Grid', 'Grid+Sub', 'Dots', 'Checker']
 
 	const currentState = $derived(
 		(page.url.searchParams.get('state') as ThrottleState | null) ?? 'live'
@@ -51,24 +36,32 @@
 		return match ? parseInt(match[1]) : 1
 	})
 
-	let fontIndex = $state(0)
-	const currentFont = $derived(FONTS[fontIndex])
+	const currentGlassDebug = $derived(
+		parseInt(page.url.searchParams.get('glass') ?? '0') || 0
+	)
 
-	const setState = (s: ThrottleState | 'live') => {
+	const setParam = (key: string, value: string | null) => {
 		const url = new URL(page.url)
-		if (s === 'live') url.searchParams.delete('state')
-		else url.searchParams.set('state', s)
+		if (value === null) url.searchParams.delete(key)
+		else url.searchParams.set(key, value)
 		goto(url.toString(), { replaceState: true, noScroll: true })
 	}
 
+	const setState = (s: ThrottleState | 'live') => {
+		setParam('state', s === 'live' ? null : s)
+	}
+
 	const setVariant = (v: number) => {
-		const stateParam = page.url.searchParams.get('state')
-		const query = stateParam ? `?state=${stateParam}` : ''
-		goto(`/variants/v${v}${query}`, { replaceState: true, noScroll: true })
+		const url = new URL(page.url)
+		url.pathname = `/variants/v${v}`
+		goto(url.toString(), { replaceState: true, noScroll: true })
+	}
+
+	const setGlassDebug = (mode: number) => {
+		setParam('glass', mode === 0 ? null : String(mode))
 	}
 
 	const onVariantSlider = (e: Event) => setVariant(parseInt((e.target as HTMLInputElement).value))
-	const onFontSlider = (e: Event) => { fontIndex = parseInt((e.target as HTMLInputElement).value) }
 
 	const labels: Record<string, { label: string; color: string }> = {
 		live:      { label: '● LIVE',    color: '#a6e3a1' },
@@ -104,19 +97,26 @@
 		<span class="value-label">v{currentVariant()}</span>
 	</div>
 
-	<!-- Font slider -->
-	<div class="row-slider">
-		<span class="row-label">FONT</span>
-		<button class="nav-btn" onclick={() => fontIndex = Math.max(0, fontIndex - 1)} disabled={fontIndex <= 0}>◀</button>
-		<input type="range" min="0" max={FONTS.length - 1} value={fontIndex} oninput={onFontSlider} class="slider" />
-		<button class="nav-btn" onclick={() => fontIndex = Math.min(FONTS.length - 1, fontIndex + 1)} disabled={fontIndex >= FONTS.length - 1}>▶</button>
-		<span class="value-label" style="min-width: 120px">{currentFont.name}</span>
+	<!-- Glass debug switcher -->
+	<div class="dev-panel">
+		<span class="dev-label">GLASS</span>
+		{#each GLASS_DEBUG_LABELS as label, i}
+			<button
+				class="dev-btn"
+				class:active={currentGlassDebug === i}
+				style="--btn-color: #89dceb"
+				onclick={() => setGlassDebug(i)}
+			>
+				{label}
+			</button>
+		{/each}
 	</div>
+
 </div>
 {/if}
 
 <!-- Inject chosen font as a CSS variable on the page -->
-<div class="slot-wrap" style="--dev-font: {currentFont.css}">
+<div class="slot-wrap">
 	<slot />
 </div>
 
