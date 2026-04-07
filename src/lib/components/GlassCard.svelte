@@ -356,7 +356,7 @@
 			u_lightPos: [lightPosU, lightPosV],
 			u_specularIntensity: LIGHTING.specularIntensity,
 			u_specularSize: LIGHTING.specularSize,
-			u_dropShadowAlpha: LIGHTING.dropShadowAlpha,
+			u_dropShadowAlpha: 0.0,
 			u_dropShadowBlur: LIGHTING.dropShadowBlur * dpr,
 			u_dropShadowOffset: [LIGHTING.dropShadowOffX * dpr, LIGHTING.dropShadowOffY * dpr],
 			u_edgeBloom: EDGE_BLOOM,
