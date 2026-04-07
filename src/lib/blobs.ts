@@ -97,15 +97,15 @@ export function tickBlobs(
 		if (i < NUM_CENTER) {
 			const dx = cx - p.x;
 			const dy = cy - p.y;
-			p.vx += dx * 0.0003 * scale;
-			p.vy += dy * 0.0003 * scale;
+			p.vx += dx * 0.003 * scale;
+			p.vy += dy * 0.003 * scale;
 		}
 		// Orbiter blobs: attract toward center, repel from each other
 		else if (i < ORBITER_END) {
 			const dx = cx - p.x;
 			const dy = cy - p.y;
-			p.vx += dx * 0.0004 * scale;
-			p.vy += dy * 0.0004 * scale;
+			p.vx += dx * 0.004 * scale;
+			p.vy += dy * 0.004 * scale;
 
 			for (let j = NUM_CENTER; j < ORBITER_END; j++) {
 				if (i === j) continue;
@@ -113,10 +113,18 @@ export function tickBlobs(
 				const rdx = p.x - q.x;
 				const rdy = p.y - q.y;
 				const rdist = Math.sqrt(rdx * rdx + rdy * rdy) + 0.001;
-				const repel = 0.000003 * Math.exp(-rdist * 25.0) * scale;
+				const repel = 0.00003 * Math.exp(-rdist * 25.0) * scale;
 				p.vx += (rdx / rdist) * repel;
 				p.vy += (rdy / rdist) * repel;
 			}
+		}
+
+		// Free-roaming blobs: weak center pull so they don't drift to the edges
+		if (i >= ORBITER_END) {
+			const dx = cx - p.x;
+			const dy = cy - p.y;
+			p.vx += dx * 0.001 * scale;
+			p.vy += dy * 0.001 * scale;
 		}
 
 		// Blob-to-blob interaction — oscillates between attract and repel per pair
@@ -134,7 +142,7 @@ export function tickBlobs(
 			const oscillation = Math.sin(time / periodSec * Math.PI * 2 + pairPhase);
 
 			// Positive = attract, negative = repel; strength falls off with distance
-			const strength = 0.0000002 * oscillation * Math.exp(-adist * 5.0) * scale;
+			const strength = 0.000002 * oscillation * Math.exp(-adist * 5.0) * scale;
 			const fx = (adx / adist) * strength;
 			const fy = (ady / adist) * strength;
 			p.vx += fx;
@@ -145,7 +153,7 @@ export function tickBlobs(
 			// Soft repulsion when close (linear pushback, no sharp spikes)
 			const overlap = (p.r + q.r) * 0.5 - adist;
 			if (overlap > 0) {
-				const push = overlap * 0.0004 * scale;
+				const push = overlap * 0.004 * scale;
 				p.vx -= (adx / adist) * push;
 				p.vy -= (ady / adist) * push;
 				q.vx += (adx / adist) * push;
@@ -166,7 +174,7 @@ export function tickBlobs(
 			const dx = p.x - mouseX;
 			const dy = p.y - mouseY;
 			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
-			const repel = 0.00002 * Math.exp(-dist * 30.0) * scale;
+			const repel = 0.0002 * Math.exp(-dist * 30.0) * scale;
 			p.vx += (dx / dist) * repel;
 			p.vy += (dy / dist) * repel;
 		}
@@ -210,7 +218,7 @@ export function applyClickBurst(
 			const dx = p.x - clickX;
 			const dy = p.y - clickY;
 			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
-			const force = 0.00075 * Math.exp(-dist * 6.0) * scale;
+			const force = 0.0075 * Math.exp(-dist * 6.0) * scale;
 			p.vx += (dx / dist) * force;
 			p.vy += (dy / dist) * force;
 		}
@@ -220,7 +228,7 @@ export function applyClickBurst(
 			const dx = p.x - clickX;
 			const dy = p.y - clickY;
 			const dist = Math.sqrt(dx * dx + dy * dy) + 0.001;
-			const force = 0.003 * Math.exp(-dist * 8.0) * scale;
+			const force = 0.03 * Math.exp(-dist * 8.0) * scale;
 			p.vx += (dx / dist) * force;
 			p.vy += (dy / dist) * force;
 		}
