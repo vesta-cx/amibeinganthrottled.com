@@ -295,27 +295,30 @@ void main() {
   // Samples are spread wider near the edge for a soft, diffuse bleed
   float innerBloom = smoothstep(-u_edgeBloomRadius, 0.0, dist) * u_edgeBloom;
   if (innerBloom > 0.001) {
-    // Blur kernel: 13-tap (center + cross + diagonals + outer ring)
-    // Spread scales with proximity to edge — wider blur near the boundary
+    // Gaussian blur matching the separable blur shader's approach:
+    // radius scales with edge proximity, sigma = radius/3, exp(-d²/2σ²)
+    // Two 1D passes collapsed into a single pass: sample H then V offsets
     vec2 bloomTexel = 1.0 / u_sceneResolution;
-    float spread = innerBloom * 24.0;
-    float s2 = spread * 0.7071; // diagonal at 1/sqrt(2)
-    float s3 = spread * 1.6;   // outer ring
-    // Inner ring: center + 4 cardinal + 4 diagonal
-    vec3 bloomCol = texture2D(u_blurredScene, vpUV).rgb * 0.16;
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(spread, 0.0) * bloomTexel).rgb * 0.10;
-    bloomCol += texture2D(u_blurredScene, vpUV - vec2(spread, 0.0) * bloomTexel).rgb * 0.10;
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, spread) * bloomTexel).rgb * 0.10;
-    bloomCol += texture2D(u_blurredScene, vpUV - vec2(0.0, spread) * bloomTexel).rgb * 0.10;
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(s2, s2) * bloomTexel).rgb * 0.06;
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(-s2, s2) * bloomTexel).rgb * 0.06;
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(s2, -s2) * bloomTexel).rgb * 0.06;
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(-s2, -s2) * bloomTexel).rgb * 0.06;
-    // Outer ring: 4 cardinal at wider spread
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(s3, 0.0) * bloomTexel).rgb * 0.05;
-    bloomCol += texture2D(u_blurredScene, vpUV - vec2(s3, 0.0) * bloomTexel).rgb * 0.05;
-    bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, s3) * bloomTexel).rgb * 0.05;
-    bloomCol += texture2D(u_blurredScene, vpUV - vec2(0.0, s3) * bloomTexel).rgb * 0.05;
+    float radius = innerBloom * 32.0;
+    float sigma = radius / 3.0;
+    float denom = 2.0 * sigma * sigma;
+    vec3 bloomCol = vec3(0.0);
+    float tw = 0.0;
+    // 9-tap horizontal + 9-tap vertical (shared center tap)
+    for (int i = -4; i <= 4; i++) {
+      float fi = float(i);
+      float w = exp(-(fi * fi) / denom);
+      bloomCol += texture2D(u_blurredScene, vpUV + vec2(fi, 0.0) * bloomTexel * radius).rgb * w;
+      tw += w;
+    }
+    for (int i = -4; i <= 4; i++) {
+      if (i == 0) continue; // already sampled center
+      float fi = float(i);
+      float w = exp(-(fi * fi) / denom);
+      bloomCol += texture2D(u_blurredScene, vpUV + vec2(0.0, fi) * bloomTexel * radius).rgb * w;
+      tw += w;
+    }
+    bloomCol /= tw;
     // Gate by luminance: only bleed where the background is genuinely bright
     float bloomLum = dot(bloomCol, vec3(0.2126, 0.7152, 0.0722));
     float brightGate = smoothstep(0.15, 0.5, bloomLum);
