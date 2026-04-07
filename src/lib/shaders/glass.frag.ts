@@ -229,7 +229,7 @@ void main() {
   if (frostZone > 0.0) {
     if (u_frostEnabled > 0.5) {
       // Full frost: blur + noise displacement + tint
-      vec2 texel = 1.0 / u_sceneResolution;
+      vec2 texel = 1.0 / u_blurResolution;
       vec2 noiseUV = gl_FragCoord.xy * 0.01;
       vec2 baseDisp = fractalDisp(noiseUV, u_frostNoiseFreq);
 

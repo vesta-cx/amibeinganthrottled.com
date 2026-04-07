@@ -348,7 +348,7 @@
 			u_highlightWidth: GLASS.highlightWidth * dpr,
 			u_overlayColor: [1.0, 1.0, 1.0, GLASS.overlayAlpha],
 			u_frostHeight: frostHeight,
-			u_frostNoiseScale: FROST.noiseScale,
+			u_frostNoiseScale: FROST.noiseScale * blurScale,
 			u_frostNoiseFreq: FROST.noiseFreq,
 			u_frostChannelSpread: FROST.channelSpread,
 			u_frostDarken: FROST.statusDarken,
