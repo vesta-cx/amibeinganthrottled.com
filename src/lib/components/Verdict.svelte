@@ -40,6 +40,11 @@
 		verdicts[throttleState][0] + ACCENT_OPEN + verdicts[throttleState][1] + ACCENT_CLOSE + verdicts[throttleState][2]
 	);
 
+	// Ghost text: full target string with sentinels stripped, used to reserve height
+	const ghostText = $derived(
+		target.replace(/[\uE001\uE002]/g, '')
+	);
+
 	$effect(() => {
 		tw.setTarget(target);
 	});
@@ -92,7 +97,12 @@
 
 <div class="verdict-group" style="{dev ? `--b-base: ${typography.brow.size}rem; --b-sm: ${typography.brow.sizeSm}rem; --b-md: ${typography.brow.sizeMd}rem; --b-lg: ${typography.brow.sizeLg}rem; --b-xl: ${typography.brow.sizeXl}rem; --b-2xl: ${typography.brow.size2xl}rem; --bm-base: ${typography.brow.mb}rem; --bm-sm: ${typography.brow.mbSm}rem; --bm-md: ${typography.brow.mbMd}rem; --bm-lg: ${typography.brow.mbLg}rem; --bm-xl: ${typography.brow.mbXl}rem; --bm-2xl: ${typography.brow.mb2xl}rem; --h-base: ${typography.heading.size}rem; --h-sm: ${typography.heading.sizeSm}rem; --h-md: ${typography.heading.sizeMd}rem; --h-lg: ${typography.heading.sizeLg}rem; --h-xl: ${typography.heading.sizeXl}rem; --h-2xl: ${typography.heading.size2xl}rem` : ''}">
 	<p class="question" style="color: {subtextColor}">{m.question({}, loc)}</p>
-	<h1 class="verdict" style="color: {subtextColor}">{parts.before}<span style="color: {accentColor}">{parts.accent}</span>{parts.after}</h1>
+	<div class="verdict-wrapper">
+		<!-- Ghost: invisible full text, reserves the container height -->
+		<div class="verdict ghost" aria-hidden="true" style="color: {subtextColor}">{ghostText}</div>
+		<!-- Live: real heading, absolutely positioned over the ghost -->
+		<h1 class="verdict live" style="color: {subtextColor}">{parts.before}<span style="color: {accentColor}">{parts.accent}</span>{parts.after}</h1>
+	</div>
 </div>
 
 <style>
@@ -111,12 +121,26 @@
 		margin-bottom: var(--bm-base, 0.3rem);
 	}
 
+	.verdict-wrapper {
+		position: relative;
+	}
+
 	.verdict {
 		margin: 0;
 		font-family: 'Fraunces', serif;
 		font-size: var(--h-base, 1.625rem);
 		font-weight: 700;
 		line-height: 1.2;
+	}
+
+	.verdict.ghost {
+		visibility: hidden;
+		user-select: none;
+	}
+
+	.verdict.live {
+		position: absolute;
+		inset: 0;
 	}
 
 	@media (min-width: 640px) {
