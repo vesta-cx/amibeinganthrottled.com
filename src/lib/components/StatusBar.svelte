@@ -45,28 +45,28 @@
 </script>
 
 <div
-	class="status-bar flex flex-col sm:grid sm:grid-cols-2"
+	class="status-bar flex flex-col"
 	style="color: {subtextColor}; border-top: 1px solid rgba(255,255,255,0.06); {dev ? `--bar-px: ${typography.bar.px}rem; --bar-py: ${typography.bar.py}rem; --bar-gap: ${typography.bar.gap}rem; --bar-px-sm: ${typography.bar.pxSm}rem; --bar-py-sm: ${typography.bar.pySm}rem; --bar-gap-sm: ${typography.bar.gapSm}rem; --bar-px-md: ${typography.bar.pxMd}rem; --bar-py-md: ${typography.bar.pyMd}rem; --bar-gap-md: ${typography.bar.gapMd}rem; --bar-px-lg: ${typography.bar.pxLg}rem; --bar-py-lg: ${typography.bar.pyLg}rem; --bar-gap-lg: ${typography.bar.gapLg}rem; --bar-px-xl: ${typography.bar.pxXl}rem; --bar-py-xl: ${typography.bar.pyXl}rem; --bar-gap-xl: ${typography.bar.gapXl}rem; --bar-px-2xl: ${typography.bar.px2xl}rem; --bar-py-2xl: ${typography.bar.py2xl}rem; --bar-gap-2xl: ${typography.bar.gap2xl}rem` : ''}"
 >
-	<!-- Mobile: Verdict first, Desktop: bottom-left -->
-	<div class="order-1 sm:order-3 sm:col-start-1 sm:row-start-2">
-		<Verdict state={throttleState} {locale} {accentColor} {subtextColor} bind:phase={verdictPhase} />
+	<!-- Row 1 (desktop): Copy prose + Controls — contents on mobile so children participate in parent flex -->
+	<div class="contents sm:flex sm:justify-between sm:items-center">
+		<div class="order-3 sm:order-none">
+			<CopyText bind:this={copyTextRef} state={throttleState} {locale} {copyData} />
+		</div>
+		<div class="order-4 sm:order-none flex items-center gap-2 sm:justify-end">
+			<LocaleSwitcher {locale} onSelect={onLocaleSelect} />
+			<ThemeSwitcher {theme} onSelect={onThemeSelect} />
+		</div>
 	</div>
 
-	<!-- Mobile: CountdownTimer second, Desktop: bottom-right -->
-	<div class="order-2 sm:order-4 sm:col-start-2 sm:row-start-2 sm:text-right">
-		<CountdownTimer {msUntilTransition} state={throttleState} {locale} {accentColor} {subtextColor} />
-	</div>
-
-	<!-- Mobile: CopyText third, Desktop: top-left -->
-	<div class="order-3 sm:order-1 sm:col-start-1 sm:row-start-1">
-		<CopyText bind:this={copyTextRef} state={throttleState} {locale} {copyData} />
-	</div>
-
-	<!-- Mobile: Controls last, Desktop: top-right -->
-	<div class="order-4 sm:order-2 sm:col-start-2 sm:row-start-1 flex items-center gap-2 sm:justify-end">
-		<LocaleSwitcher {locale} onSelect={onLocaleSelect} />
-		<ThemeSwitcher {theme} onSelect={onThemeSelect} />
+	<!-- Row 2 (desktop): Verdict + Timer — contents on mobile so children participate in parent flex -->
+	<div class="contents sm:flex sm:justify-between sm:items-baseline">
+		<div class="order-1 sm:order-none">
+			<Verdict state={throttleState} {locale} {accentColor} {subtextColor} bind:phase={verdictPhase} />
+		</div>
+		<div class="order-2 sm:order-none sm:text-right">
+			<CountdownTimer {msUntilTransition} state={throttleState} {locale} {accentColor} {subtextColor} />
+		</div>
 	</div>
 </div>
 
