@@ -80,6 +80,17 @@ export const ptAt = (anchor: Date, hour: number, minute = 0, dayOffset = 0): Dat
 // Returns midnight PT on the PT calendar date of `anchor` + `dayOffset` days.
 const ptMidnight = (anchor: Date, dayOffset = 0): Date => ptAt(anchor, 0, 0, dayOffset)
 
+// Returns 5 AM PT on the next weekday relative to `anchor`:
+//   Mon–Thu → next calendar day at 5 AM PT
+//   Fri/Sat/Sun → the following Monday at 5 AM PT
+export const ptNextWeekday5am = (anchor: Date): Date => {
+	const { weekday } = ptParts(anchor)
+	// Days until next Monday: Fri=3, Sat=2, Sun=1; otherwise always 1
+	const daysUntilMonday = weekday === 5 ? 3 : weekday === 6 ? 2 : weekday === 0 ? 1 : 1
+	const dayOffset = weekday >= 1 && weekday <= 4 ? 1 : daysUntilMonday
+	return ptAt(anchor, WINDOW_START, 0, dayOffset)
+}
+
 export const throttle = (date: Date = new Date()): ThrottleResult => {
 	const { weekday, hour } = ptParts(date)
 	const isWeekend = weekday === 0 || weekday === 6
@@ -95,8 +106,8 @@ export const throttle = (date: Date = new Date()): ThrottleResult => {
 		lastTransitionAt = ptAt(date, WINDOW_START)
 	} else if (isWeekend) {
 		state = 'weekend'
-		// Saturday → midnight Sunday; Sunday → midnight Monday
-		nextTransitionAt = ptMidnight(date, 1)
+		// Saturday/Sunday → Monday 5 AM PT
+		nextTransitionAt = ptNextWeekday5am(date)
 		// The weekend state began at Saturday midnight regardless of whether
 		// today is Saturday or Sunday — use dayOffset -1 on Sunday.
 		lastTransitionAt = ptMidnight(date, weekday === 0 ? -1 : 0)
@@ -109,8 +120,8 @@ export const throttle = (date: Date = new Date()): ThrottleResult => {
 		// Clear: after today's throttle window
 		state = 'clear'
 		lastTransitionAt = ptAt(date, WINDOW_END)
-		// Always midnight tomorrow: Mon–Thu → next clear day, Fri → Saturday (start of weekend)
-		nextTransitionAt = ptMidnight(date, 1)
+		// Mon–Thu → next day 5 AM PT; Fri → Monday 5 AM PT
+		nextTransitionAt = ptNextWeekday5am(date)
 	}
 
 	const now = date.getTime()

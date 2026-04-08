@@ -115,36 +115,36 @@ describe('throttle — nextTransitionAt', () => {
 		expect(next.weekday).toBe(1) // Monday
 	})
 
-	it('clear (after window, Mon–Thu) → nextTransitionAt is midnight tonight PT', () => {
+	it('clear (after window, Mon–Thu) → nextTransitionAt is 05:00 PT next day', () => {
 		const d = pt('2026-04-06T14:00:00') // Monday
 		const { nextTransitionAt } = throttle(d)
 		const next = ptParts(nextTransitionAt)
-		expect(next.hour).toBe(0)
+		expect(next.hour).toBe(5)
 		expect(next.minute).toBe(0)
 		expect(next.weekday).toBe(2) // Tuesday
 	})
 
-	it('clear (after window, Friday) → nextTransitionAt is Saturday 00:00 PT', () => {
+	it('clear (after window, Friday) → nextTransitionAt is Monday 05:00 PT (skip weekend)', () => {
 		const d = pt('2026-04-10T14:00:00') // Friday
 		const { nextTransitionAt } = throttle(d)
 		const next = ptParts(nextTransitionAt)
-		expect(next.hour).toBe(0)
-		expect(next.weekday).toBe(6) // Saturday
+		expect(next.hour).toBe(5)
+		expect(next.weekday).toBe(1) // Monday
 	})
 
-	it('weekend Saturday → nextTransitionAt is Sunday 00:00 PT', () => {
+	it('weekend Saturday → nextTransitionAt is Monday 05:00 PT', () => {
 		const d = pt('2026-04-04T12:00:00') // Saturday
 		const { nextTransitionAt } = throttle(d)
 		const next = ptParts(nextTransitionAt)
-		expect(next.hour).toBe(0)
-		expect(next.weekday).toBe(0) // Sunday
+		expect(next.hour).toBe(5)
+		expect(next.weekday).toBe(1) // Monday
 	})
 
-	it('weekend Sunday → nextTransitionAt is Monday 00:00 PT', () => {
+	it('weekend Sunday → nextTransitionAt is Monday 05:00 PT', () => {
 		const d = pt('2026-04-05T12:00:00') // Sunday
 		const { nextTransitionAt } = throttle(d)
 		const next = ptParts(nextTransitionAt)
-		expect(next.hour).toBe(0)
+		expect(next.hour).toBe(5)
 		expect(next.weekday).toBe(1) // Monday
 	})
 })
