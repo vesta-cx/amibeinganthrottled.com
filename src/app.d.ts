@@ -10,7 +10,9 @@ declare global {
 		}
 
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			theme: string;
+		}
 		// interface PageData {}
 		// interface PageState {}
 	}

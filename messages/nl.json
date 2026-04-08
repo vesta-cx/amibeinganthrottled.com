@@ -1,4 +1,25 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from nl!"
+	"question": "Word ik Anthrottled?",
+	"verdict_throttled_before": "Helaas, ",
+	"verdict_throttled_accent": "ja",
+	"verdict_throttled_after": ".",
+	"verdict_clear_before": "",
+	"verdict_clear_accent": "Nee",
+	"verdict_clear_after": ", alles goed!",
+	"verdict_weekend_before": "Het is ",
+	"verdict_weekend_accent": "weekend",
+	"verdict_weekend_after": "!",
+	"timer_eyebrow_throttled": "Je wordt Unthrottled over",
+	"timer_eyebrow_clear": "Je wordt Anthrottled over",
+	"timer_eyebrow_weekend": "Je wordt Anthrottled over",
+	"time_day": "dag",
+	"time_days": "dagen",
+	"time_hour": "uur",
+	"time_hours": "uur",
+	"time_minute": "minuut",
+	"time_minutes": "minuten",
+	"time_second": "seconde",
+	"time_seconds": "seconden",
+	"time_and": "en"
 }

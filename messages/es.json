@@ -1,4 +1,25 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from es!"
+	"question": "Estoy siendo Anthrottled?",
+	"verdict_throttled_before": "Por desgracia, ",
+	"verdict_throttled_accent": "sí",
+	"verdict_throttled_after": ".",
+	"verdict_clear_before": "",
+	"verdict_clear_accent": "No",
+	"verdict_clear_after": ", todo bien!",
+	"verdict_weekend_before": "Es ",
+	"verdict_weekend_accent": "fin de semana",
+	"verdict_weekend_after": "!",
+	"timer_eyebrow_throttled": "Serás Unthrottled en",
+	"timer_eyebrow_clear": "Serás Anthrottled en",
+	"timer_eyebrow_weekend": "Serás Anthrottled en",
+	"time_day": "día",
+	"time_days": "días",
+	"time_hour": "hora",
+	"time_hours": "horas",
+	"time_minute": "minuto",
+	"time_minutes": "minutos",
+	"time_second": "segundo",
+	"time_seconds": "segundos",
+	"time_and": "y"
 }

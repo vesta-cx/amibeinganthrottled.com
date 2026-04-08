@@ -2,7 +2,26 @@
 
 <html lang="%paraglide.lang%" dir="%paraglide.dir%">
 	<head>
+		<script>
+			(function() {
+				var m = document.cookie.match(/(?:^|; )THEME=([^;]*)/);
+				var t = m ? m[1] : 'auto';
+				if (t === 'auto') t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'anthropic-light' : 'anthropic-dark';
+				document.documentElement.setAttribute('data-theme', t);
+			})();
+		</script>
 		<meta charset="utf-8" />
+		<style>
+			body { margin: 0; }
+			html[data-theme="anthropic-dark"]  { background: rgb(25,25,24); }
+			html[data-theme="anthropic-light"] { background: rgb(250,247,240); }
+			html[data-theme="mocha"]           { background: rgb(30,30,46); }
+			html[data-theme="macchiato"]       { background: rgb(36,39,58); }
+			html[data-theme="frappe"]          { background: rgb(48,52,70); }
+			html[data-theme="latte"]           { background: rgb(239,241,245); }
+			html[data-theme="solarized-dark"]  { background: rgb(0,43,54); }
+			html[data-theme="solarized-light"] { background: rgb(253,246,227); }
+		</style>
 
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 

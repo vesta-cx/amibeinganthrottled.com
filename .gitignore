@@ -29,3 +29,6 @@ project.inlang/cache/
 
 # Worktrees
 .worktrees/
+
+# Local reference repos
+.references/
