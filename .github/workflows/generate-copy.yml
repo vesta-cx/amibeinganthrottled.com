@@ -10,12 +10,15 @@ on:
 jobs:
   generate-copy:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write # Required for pushing commits
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -25,7 +28,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -34,12 +37,17 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           COPY_MODEL: ${{ vars.COPY_MODEL || 'anthropic/claude-haiku-4-5' }}
-        run: pnpm generate-copy
+        run: |
+          if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not configured"
+            exit 1
+          fi
+          pnpm generate-copy
 
       - name: Check for changes
         id: changes
         run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
+          if [[ -n "$(git status --porcelain src/lib/copy/)" ]]; then
             echo "changes=true" >> $GITHUB_OUTPUT
           else
             echo "changes=false" >> $GITHUB_OUTPUT
@@ -47,19 +55,17 @@ jobs:
 
       - name: Commit and push changes
         if: steps.changes.outputs.changes == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Configure git with GitHub Actions bot identity
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
           # Generate current date for commit message
           current_date=$(date -u +%Y-%m-%d)
-          
-          # Add all changes and commit
-          git add .
+
+          # Add only generated copy files and commit
+          git add src/lib/copy/
           git commit -m "chore: weekly copy $current_date"
-          
+
           # Push to main
           git push origin HEAD:main
