@@ -10,10 +10,20 @@
 	},
 	"workers_dev": true,
 	"preview_urls": true,
-	"routes": [
-		{
-			"pattern": "amibeinganthrottled.mia.cx",
-			"custom_domain": true
+	"env": {
+		"staging": {
+			"name": "amibeinganthrottled-com-staging",
+			"workers_dev": true
+		},
+		"production": {
+			"name": "amibeinganthrottled-com",
+			"workers_dev": false,
+			"routes": [
+				{
+					"pattern": "amibeinganthrottled.mia.cx",
+					"custom_domain": true
+				}
+			]
 		}
-	]
+	}
 }
