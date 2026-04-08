@@ -1,0 +1,85 @@
+name: PR Preview
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  WORKER_NAME: amibeinganthrottled-com-pr-${{ github.event.pull_request.number }}
+
+jobs:
+  deploy-preview:
+    if: >-
+      github.event.action != 'closed' && (
+        github.event.pull_request.author_association == 'CONTRIBUTOR' ||
+        github.event.pull_request.author_association == 'COLLABORATOR' ||
+        github.event.pull_request.author_association == 'MEMBER' ||
+        github.event.pull_request.author_association == 'OWNER'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Override worker name for preview
+        run: sed -i 's/"name": "amibeinganthrottled-com"/"name": "'$WORKER_NAME'"/' wrangler.jsonc
+
+      - name: Build and deploy preview
+        id: deploy
+        run: |
+          pnpm build
+          DEPLOY_OUTPUT=$(pnpm exec wrangler deploy 2>&1)
+          echo "$DEPLOY_OUTPUT"
+          # Extract the workers.dev URL from deploy output
+          PREVIEW_URL=$(echo "$DEPLOY_OUTPUT" | grep -oP 'https://[^\s]+\.workers\.dev' | head -1)
+          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Comment preview URL on PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            **Preview deployment ready** :rocket:
+
+            ${{ steps.deploy.outputs.preview_url }}
+
+            <sub>Deployed from ${{ github.event.pull_request.head.sha }}</sub>
+          comment-tag: preview-deploy
+
+  cleanup-preview:
+    if: >-
+      github.event.action == 'closed' && (
+        github.event.pull_request.author_association == 'CONTRIBUTOR' ||
+        github.event.pull_request.author_association == 'COLLABORATOR' ||
+        github.event.pull_request.author_association == 'MEMBER' ||
+        github.event.pull_request.author_association == 'OWNER'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete preview worker
+        run: npx wrangler delete --name "$WORKER_NAME" --force
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
