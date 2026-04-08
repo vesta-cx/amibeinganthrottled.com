@@ -43,18 +43,16 @@ jobs:
       - name: Override worker name for preview
         run: sed -i 's/"name": "amibeinganthrottled-com"/"name": "'$WORKER_NAME'"/' wrangler.jsonc
 
-      - name: Build and deploy preview
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy preview
         id: deploy
-        run: |
-          pnpm build
-          DEPLOY_OUTPUT=$(pnpm exec wrangler deploy 2>&1)
-          echo "$DEPLOY_OUTPUT"
-          # Extract the workers.dev URL from deploy output
-          PREVIEW_URL=$(echo "$DEPLOY_OUTPUT" | grep -oP 'https://[^\s]+\.workers\.dev' | head -1)
-          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
 
       - name: Comment preview URL on PR
         uses: peter-evans/create-or-update-comment@v4
@@ -63,7 +61,7 @@ jobs:
           body: |
             **Preview deployment ready** :rocket:
 
-            ${{ steps.deploy.outputs.preview_url }}
+            https://${{ env.WORKER_NAME }}.workers.dev
 
             <sub>Deployed from ${{ github.event.pull_request.head.sha }}</sub>
           comment-tag: preview-deploy
@@ -79,7 +77,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete preview worker
-        run: npx wrangler delete --name "$WORKER_NAME" --force
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: delete --name ${{ env.WORKER_NAME }} --force
