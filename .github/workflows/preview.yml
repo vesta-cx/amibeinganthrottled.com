@@ -1,34 +1,23 @@
-name: PR Preview
+name: Preview Deploy
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, closed]
+  push:
+    branches-ignore:
+      - main
+      - production
 
 concurrency:
-  group: preview-${{ github.event.pull_request.number }}
+  group: preview-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  WORKER_NAME: amibeinganthrottled-com-pr-${{ github.event.pull_request.number }}
 
 jobs:
   deploy-preview:
-    if: >-
-      github.event.action != 'closed' && (
-        github.event.pull_request.author_association == 'CONTRIBUTOR' ||
-        github.event.pull_request.author_association == 'COLLABORATOR' ||
-        github.event.pull_request.author_association == 'MEMBER' ||
-        github.event.pull_request.author_association == 'OWNER'
-      )
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: pnpm/action-setup@v4
 
@@ -40,6 +29,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Set preview worker name
+        run: |
+          # Sanitize branch name for worker name (lowercase, alphanumeric + hyphens)
+          BRANCH="${GITHUB_REF_NAME}"
+          SAFE_BRANCH=$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | cut -c1-30)
+          echo "WORKER_NAME=amibeinganthrottled-com-${SAFE_BRANCH}" >> "$GITHUB_ENV"
+
       - name: Override worker name for preview
         run: sed -i 's/"name": "amibeinganthrottled-com"/"name": "'$WORKER_NAME'"/' wrangler.jsonc
 
@@ -47,38 +43,8 @@ jobs:
         run: pnpm build
 
       - name: Deploy preview
-        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
-
-      - name: Comment preview URL on PR
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            **Preview deployment ready** :rocket:
-
-            https://${{ env.WORKER_NAME }}.workers.dev
-
-            <sub>Deployed from ${{ github.event.pull_request.head.sha }}</sub>
-          comment-tag: preview-deploy
-
-  cleanup-preview:
-    if: >-
-      github.event.action == 'closed' && (
-        github.event.pull_request.author_association == 'CONTRIBUTOR' ||
-        github.event.pull_request.author_association == 'COLLABORATOR' ||
-        github.event.pull_request.author_association == 'MEMBER' ||
-        github.event.pull_request.author_association == 'OWNER'
-      )
-    runs-on: ubuntu-latest
-    steps:
-      - name: Delete preview worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: delete --name ${{ env.WORKER_NAME }} --force
