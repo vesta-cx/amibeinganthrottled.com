@@ -29,6 +29,12 @@
 		return (localeData[throttleState] ?? []) as string[];
 	});
 
+	// Ghost text: the longest string in the current pool, to reserve max height
+	const ghostText = $derived.by(() => {
+		if (strings.length === 0) return '';
+		return strings.reduce((a, b) => (a.length >= b.length ? a : b));
+	});
+
 	// When the string pool changes, pick a new random target and reset rotation.
 	// Only calls setTarget after startTyping() has been called — prevents CopyText
 	// from racing ahead of the Verdict typewriter on mount.
@@ -78,13 +84,36 @@
 	}
 </script>
 
-<p class="copy-text font-['Fraunces',serif] leading-snug" style={dev ? `--c-base: ${typography.copy.size}rem; --c-sm: ${typography.copy.sizeSm}rem; --c-md: ${typography.copy.sizeMd}rem; --c-lg: ${typography.copy.sizeLg}rem; --c-xl: ${typography.copy.sizeXl}rem; --c-2xl: ${typography.copy.size2xl}rem` : ''}>{text}</p>
+<div class="copy-wrapper">
+	<!-- Ghost: invisible longest string, reserves max height -->
+	<p class="copy-text font-['Fraunces',serif] leading-snug ghost" aria-hidden="true"
+		style={dev ? `--c-base: ${typography.copy.size}rem; --c-sm: ${typography.copy.sizeSm}rem; --c-md: ${typography.copy.sizeMd}rem; --c-lg: ${typography.copy.sizeLg}rem; --c-xl: ${typography.copy.sizeXl}rem; --c-2xl: ${typography.copy.size2xl}rem` : ''}>{ghostText}</p>
+	<!-- Live: absolutely positioned over the ghost -->
+	<p class="copy-text font-['Fraunces',serif] leading-snug live"
+		style={dev ? `--c-base: ${typography.copy.size}rem; --c-sm: ${typography.copy.sizeSm}rem; --c-md: ${typography.copy.sizeMd}rem; --c-lg: ${typography.copy.sizeLg}rem; --c-xl: ${typography.copy.sizeXl}rem; --c-2xl: ${typography.copy.size2xl}rem` : ''}>{text}</p>
+</div>
 
 <style>
+	.copy-wrapper {
+		position: relative;
+	}
+
 	.copy-text {
 		font-style: italic;
 		font-size: var(--c-base, 1rem);
+		margin: 0;
 	}
+
+	.copy-text.ghost {
+		visibility: hidden;
+		user-select: none;
+	}
+
+	.copy-text.live {
+		position: absolute;
+		inset: 0;
+	}
+
 	@media (min-width: 640px)  { .copy-text { font-size: var(--c-sm, 0.875rem); } }
 	@media (min-width: 768px)  { .copy-text { font-size: var(--c-md, 0.875rem); } }
 	@media (min-width: 1024px) { .copy-text { font-size: var(--c-lg, 1rem); } }
